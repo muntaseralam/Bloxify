@@ -181,6 +181,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get leaderboard data
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      // For an in-memory database, we need to extract all users and sort them
+      const allUsers = Array.from(storage.usersByUsername.values());
+      
+      // Sort by best score (highest first) and then by best time (lowest first)
+      const leaderboard = allUsers
+        .filter(user => user.bestScore > 0) // Only include users with scores
+        .sort((a, b) => {
+          // First by score (descending)
+          if (b.bestScore !== a.bestScore) {
+            return b.bestScore - a.bestScore;
+          }
+          // Then by time (ascending)
+          return a.bestTime - b.bestTime;
+        })
+        .slice(0, 10) // Get top 10
+        .map(user => ({
+          username: user.username,
+          bestScore: user.bestScore,
+          bestTime: user.bestTime,
+          isRecordHolder: user.isRecordHolder
+        }));
+      
+      res.json({ leaderboard });
+    } catch (error) {
+      console.error("Leaderboard error:", error);
+      res.status(500).json({ message: "Failed to get leaderboard" });
+    }
+  });
+  
+  // Record game score and time
+  app.post("/api/users/:username/score", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const { score, time } = req.body;
+      
+      if (typeof score !== 'number' || typeof time !== 'number') {
+        return res.status(400).json({ message: "Score and time must be numbers" });
+      }
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if this is a new record for the user
+      let isImprovedScore = false;
+      let becameRecordHolder = false;
+      
+      if (score > user.bestScore || (score === user.bestScore && time < user.bestTime)) {
+        isImprovedScore = true;
+        
+        // Update user's best score and time
+        const updates: any = { bestScore: score, bestTime: time };
+        
+        // Get current record holder's score
+        const allUsers = Array.from(storage.usersByUsername.values());
+        const currentRecordHolder = allUsers
+          .filter(u => u.isRecordHolder)
+          .sort((a, b) => b.bestScore - a.bestScore)[0];
+        
+        // Check if this sets a new overall record
+        const isNewRecord = !currentRecordHolder || 
+          (score > currentRecordHolder.bestScore) ||
+          (score === currentRecordHolder.bestScore && time < currentRecordHolder.bestTime);
+        
+        if (isNewRecord) {
+          // Reset all record holders
+          for (const u of allUsers) {
+            if (u.isRecordHolder) {
+              await storage.updateUser(u.username, { isRecordHolder: false });
+            }
+          }
+          
+          // Set this user as the new record holder
+          updates.isRecordHolder = true;
+          becameRecordHolder = true;
+        }
+        
+        // Update user with new scores and record status
+        await storage.updateUser(username, updates);
+      }
+      
+      // Check if user broke the record (needs to be record holder and complete within 10 seconds)
+      const isSpeedChallenge = becameRecordHolder && time <= 10000; // 10 seconds in milliseconds
+      const adRequirement = isSpeedChallenge ? 10 : 15; // Reduced ad requirement for record breakers
+      
+      res.json({
+        success: true,
+        isImprovedScore,
+        isSpeedChallenge,
+        adRequirement,
+        message: isSpeedChallenge 
+          ? "Congratulations! You broke the record in under 10 seconds! Complete only 10 ads to earn your token."
+          : isImprovedScore 
+            ? "New personal best!" 
+            : "Score recorded."
+      });
+      
+    } catch (error) {
+      console.error("Score update error:", error);
+      res.status(500).json({ message: "Failed to update score" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

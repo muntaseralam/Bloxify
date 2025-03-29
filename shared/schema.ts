@@ -10,6 +10,9 @@ export const users = pgTable("users", {
   token: text("token"),
   isTokenRedeemed: boolean("is_token_redeemed").default(false),
   lastQuestCompletedAt: timestamp("last_quest_completed_at"),
+  bestScore: integer("best_score").default(0),
+  bestTime: integer("best_time").default(0), // In milliseconds
+  isRecordHolder: boolean("is_record_holder").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -23,6 +26,9 @@ export const updateUserSchema = createInsertSchema(users).pick({
   token: true,
   isTokenRedeemed: true,
   lastQuestCompletedAt: true,
+  bestScore: true,
+  bestTime: true,
+  isRecordHolder: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
