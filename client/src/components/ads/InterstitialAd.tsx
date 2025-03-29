@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import AdSense from 'react-adsense';
 
 interface InterstitialAdProps {
   onClose: () => void;
@@ -10,13 +9,8 @@ interface InterstitialAdProps {
 
 const InterstitialAd = ({ onClose, autoCloseDelay = 10000 }: InterstitialAdProps) => {
   const [countdown, setCountdown] = useState(Math.ceil(autoCloseDelay / 1000));
-  const [useRealAds, setUseRealAds] = useState(true);
   
   useEffect(() => {
-    // Check if AdSense is available
-    const isAdSenseAvailable = !!(window.adsbygoogle);
-    setUseRealAds(isAdSenseAvailable);
-    
     // Countdown timer
     const timer = setInterval(() => {
       setCountdown(prev => {
@@ -55,25 +49,14 @@ const InterstitialAd = ({ onClose, autoCloseDelay = 10000 }: InterstitialAdProps
         </div>
         
         <div className="bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-          {useRealAds ? (
-            <div className="w-full">
-              <AdSense.Google
-                client="ca-pub-YOUR_PUBLISHER_ID_HERE" // Replace with your publisher ID
-                slot="YOUR_INTERSTITIAL_AD_SLOT_ID_HERE" // Replace with your ad slot ID
-                style={{ display: 'block', width: '100%', height: '280px' }}
-                format="rectangle"
-              />
+          <div className="text-center p-8 w-full aspect-video">
+            <div className="text-5xl text-blue-500 mb-4">📢</div>
+            <h3 className="text-xl font-bold mb-2">Interstitial Advertisement</h3>
+            <p className="text-sm text-gray-600 mb-4">Watch this ad before starting the game!</p>
+            <div className="text-blue-600 font-bold">
+              Content loading...
             </div>
-          ) : (
-            <div className="text-center p-8 w-full aspect-video">
-              <div className="text-5xl text-blue-500 mb-4">📢</div>
-              <h3 className="text-xl font-bold mb-2">Interstitial Advertisement</h3>
-              <p className="text-sm text-gray-600 mb-4">Watch this ad before starting the game!</p>
-              <div className="text-blue-600 font-bold">
-                Content loading...
-              </div>
-            </div>
-          )}
+          </div>
         </div>
         
         <div className="p-4 text-center">
