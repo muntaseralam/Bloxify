@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import AdSense from 'react-adsense';
 import { Gift, Gamepad } from "lucide-react";
 
 interface BannerAdProps {
@@ -11,16 +12,64 @@ const BannerAd = ({
   variant = "horizontal" 
 }: BannerAdProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [useRealAds, setUseRealAds] = useState(true);
   
   useEffect(() => {
-    // Simulate ad loading delay
-    const timeout = setTimeout(() => {
-      setIsLoaded(true);
-    }, 1000);
+    // Check if we're in production and if AdSense is available
+    const isAdSenseAvailable = !!(window.adsbygoogle);
+    setUseRealAds(isAdSenseAvailable);
     
-    return () => clearTimeout(timeout);
+    // For fallback if AdSense is not loaded or we're in development
+    if (!isAdSenseAvailable) {
+      const timeout = setTimeout(() => {
+        setIsLoaded(true);
+      }, 1000);
+      
+      return () => clearTimeout(timeout);
+    }
   }, []);
   
+  // AdSense sizes based on variant
+  const adSize = variant === "vertical" ? { width: 160, height: 600 } : { width: 728, height: 90 };
+  const mobileAdSize = variant === "vertical" ? { width: 320, height: 100 } : { width: 320, height: 100 };
+  
+  // If we can use real ads
+  if (useRealAds) {
+    return (
+      <div className={`bg-gray-100 border border-gray-200 rounded-lg overflow-hidden shadow-md ${variant === "vertical" ? "mb-4" : ""} ${className}`}>
+        <div className="bg-blue-500 text-white text-xs px-2 py-1 text-center">ADVERTISEMENT</div>
+        <div className="p-2 flex justify-center">
+          {/* Desktop AdSense ad */}
+          <div className="hidden md:block">
+            <AdSense.Google
+              client="ca-pub-YOUR_PUBLISHER_ID_HERE" // Replace with your publisher ID
+              slot="YOUR_AD_SLOT_ID_HERE" // Replace with your ad slot ID
+              style={{ display: 'block' }}
+              format="auto"
+              responsive="true"
+              width={adSize.width}
+              height={adSize.height}
+            />
+          </div>
+          
+          {/* Mobile AdSense ad */}
+          <div className="block md:hidden">
+            <AdSense.Google
+              client="ca-pub-YOUR_PUBLISHER_ID_HERE" // Replace with your publisher ID
+              slot="YOUR_MOBILE_AD_SLOT_ID_HERE" // Replace with your mobile ad slot ID
+              style={{ display: 'block' }}
+              format="auto"
+              responsive="true"
+              width={mobileAdSize.width}
+              height={mobileAdSize.height}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Fallback mock ads if real ads not available
   if (variant === "vertical") {
     return (
       <div className={`bg-gray-100 border border-gray-200 rounded-lg overflow-hidden shadow-md mb-4 ${className}`}>

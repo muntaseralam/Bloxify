@@ -1,16 +1,22 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import AdSense from 'react-adsense';
 
 interface InterstitialAdProps {
   onClose: () => void;
   autoCloseDelay?: number; // Auto close delay in milliseconds
 }
 
-const InterstitialAd = ({ onClose, autoCloseDelay = 5000 }: InterstitialAdProps) => {
+const InterstitialAd = ({ onClose, autoCloseDelay = 10000 }: InterstitialAdProps) => {
   const [countdown, setCountdown] = useState(Math.ceil(autoCloseDelay / 1000));
+  const [useRealAds, setUseRealAds] = useState(true);
   
   useEffect(() => {
+    // Check if AdSense is available
+    const isAdSenseAvailable = !!(window.adsbygoogle);
+    setUseRealAds(isAdSenseAvailable);
+    
     // Countdown timer
     const timer = setInterval(() => {
       setCountdown(prev => {
@@ -35,7 +41,7 @@ const InterstitialAd = ({ onClose, autoCloseDelay = 5000 }: InterstitialAdProps)
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
-      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+      <div className="relative bg-white rounded-lg shadow-lg max-w-lg w-full mx-4">
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
           <div className="text-lg font-bold text-gray-800">Advertisement</div>
           {countdown === 0 && (
@@ -48,15 +54,26 @@ const InterstitialAd = ({ onClose, autoCloseDelay = 5000 }: InterstitialAdProps)
           )}
         </div>
         
-        <div className="bg-gray-100 aspect-video flex items-center justify-center p-4 border-4 border-gray-200">
-          <div className="text-center">
-            <div className="text-5xl text-blue-500 mb-4"><i className="fas fa-ad"></i></div>
-            <h3 className="text-xl font-bold mb-2">Interstitial Advertisement</h3>
-            <p className="text-sm text-gray-600 mb-4">Watch this ad before starting the game!</p>
-            <div className="animate-pulse text-blue-600 font-bold">
-              Content loading...
+        <div className="bg-gray-100 flex items-center justify-center border-4 border-gray-200">
+          {useRealAds ? (
+            <div className="w-full">
+              <AdSense.Google
+                client="ca-pub-YOUR_PUBLISHER_ID_HERE" // Replace with your publisher ID
+                slot="YOUR_INTERSTITIAL_AD_SLOT_ID_HERE" // Replace with your ad slot ID
+                style={{ display: 'block', width: '100%', height: '280px' }}
+                format="rectangle"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="text-center p-8 w-full aspect-video">
+              <div className="text-5xl text-blue-500 mb-4">📢</div>
+              <h3 className="text-xl font-bold mb-2">Interstitial Advertisement</h3>
+              <p className="text-sm text-gray-600 mb-4">Watch this ad before starting the game!</p>
+              <div className="text-blue-600 font-bold">
+                Content loading...
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="p-4 text-center">

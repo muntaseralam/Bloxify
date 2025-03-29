@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Check, X } from "lucide-react";
+import { AlertTriangle, Check, X, Film } from "lucide-react";
+import AdSense from 'react-adsense';
 
 interface RewardedVideoAdProps {
   onComplete: () => void;
@@ -11,13 +12,18 @@ interface RewardedVideoAdProps {
 const RewardedVideoAd = ({ 
   onComplete, 
   onCancel = () => {}, 
-  duration = 5000 
+  duration = 15000  // Increased duration for real video ads
 }: RewardedVideoAdProps) => {
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [useRealAds, setUseRealAds] = useState(true);
   
   useEffect(() => {
+    // Check if AdSense is available
+    const isAdSenseAvailable = !!(window as any).adsbygoogle;
+    setUseRealAds(isAdSenseAvailable);
+    
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -31,13 +37,15 @@ const RewardedVideoAd = ({
       }
     }, 100);
     
-    // Simulate random failures (10% chance)
-    const failChance = Math.random();
-    if (failChance > 0.9) {
-      setTimeout(() => {
-        clearInterval(interval);
-        setIsError(true);
-      }, duration * 0.3);
+    // Simulate random failures (10% chance) - only for mock ads
+    if (!isAdSenseAvailable) {
+      const failChance = Math.random();
+      if (failChance > 0.9) {
+        setTimeout(() => {
+          clearInterval(interval);
+          setIsError(true);
+        }, duration * 0.3);
+      }
     }
     
     return () => clearInterval(interval);
@@ -74,7 +82,7 @@ const RewardedVideoAd = ({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
-      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+      <div className="relative bg-white rounded-lg shadow-lg max-w-lg w-full mx-4">
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
           <div className="text-lg font-bold text-gray-800">
             {isError ? "Video Error" : isComplete ? "Video Complete" : "Rewarded Video"}
@@ -87,9 +95,9 @@ const RewardedVideoAd = ({
           </button>
         </div>
         
-        <div className="bg-gray-100 aspect-video flex items-center justify-center relative overflow-hidden">
+        <div className="bg-gray-100 flex items-center justify-center relative overflow-hidden">
           {isError ? (
-            <div className="text-center p-4">
+            <div className="text-center p-4 w-full aspect-video">
               <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">Video Failed to Load</h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -97,7 +105,7 @@ const RewardedVideoAd = ({
               </p>
             </div>
           ) : isComplete ? (
-            <div className="text-center p-4">
+            <div className="text-center p-4 w-full aspect-video">
               <Check className="h-16 w-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">Video Complete!</h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -106,17 +114,28 @@ const RewardedVideoAd = ({
             </div>
           ) : (
             <>
-              <div className="absolute top-0 left-0 h-1 bg-blue-500" style={{ width: `${progress}%` }}></div>
-              <div className="text-center">
-                <div className="text-5xl text-blue-500 mb-4"><i className="fas fa-film"></i></div>
-                <h3 className="text-xl font-bold mb-2">Video Playing</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Please watch the full video to claim your reward.
-                </p>
-                <div className="text-blue-600 font-bold">
-                  Loading content...
+              <div className="absolute top-0 left-0 h-1 bg-blue-500 z-10" style={{ width: `${progress}%` }}></div>
+              {useRealAds ? (
+                <div className="w-full">
+                  <AdSense.Google
+                    client="ca-pub-YOUR_PUBLISHER_ID_HERE" // Replace with your publisher ID
+                    slot="YOUR_VIDEO_AD_SLOT_ID_HERE" // Replace with your ad slot ID
+                    style={{ display: 'block', width: '100%', height: '315px' }}
+                    format="fluid"
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="text-center p-8 w-full aspect-video">
+                  <Film className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold mb-2">Video Playing</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Please watch the full video to claim your reward.
+                  </p>
+                  <div className="text-blue-600 font-bold">
+                    Loading content...
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
