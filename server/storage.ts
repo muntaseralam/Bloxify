@@ -7,12 +7,11 @@ export interface IStorage {
   updateUser(username: string, data: Partial<UpdateUser>): Promise<User | undefined>;
   generateTokenForUser(username: string): Promise<string | undefined>;
   canUserCompleteQuestToday(username: string): Promise<boolean>;
-  usersByUsername: Map<string, User>; // Expose map for leaderboard functionality
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
-  usersByUsername: Map<string, User>; // Public for leaderboard access
+  private usersByUsername: Map<string, User>;
   currentId: number;
 
   constructor() {
@@ -42,9 +41,6 @@ export class MemStorage implements IStorage {
       token: null,
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
-      bestScore: 0,
-      bestTime: 0,
-      isRecordHolder: false,
       createdAt: new Date(),
     };
     
@@ -67,16 +63,7 @@ export class MemStorage implements IStorage {
     const user = await this.getUserByUsername(username);
     if (!user) return undefined;
     
-    // Check if user completed the game
-    if (!user.gameCompleted) {
-      return undefined;
-    }
-    
-    // Get required ad count (10 if they broke the speed record, else 15)
-    const requiredAds = user.isRecordHolder && user.bestTime && user.bestTime <= 10000 ? 10 : 15;
-    
-    // Check if they watched enough ads
-    if (user.adsWatched < requiredAds) {
+    if (!user.gameCompleted || user.adsWatched < 15) {
       return undefined;
     }
     

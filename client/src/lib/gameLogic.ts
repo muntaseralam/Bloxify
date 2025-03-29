@@ -24,8 +24,6 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
   let score = 0;
   let gameInterval: number | null = null;
   let keys: Record<string, boolean> = {};
-  let gameStartTime: number | null = null;
-  let gameTime: number = 0;
   
   const { onScoreChange } = options;
   
@@ -239,21 +237,8 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
     coins = [];
     enemies = [];
     
-    // Record start time for speed challenge
-    gameStartTime = Date.now();
-    gameTime = 0;
-    
     // Start game loop
-    gameInterval = window.setInterval(() => {
-      // Update game time
-      if (gameStartTime) {
-        gameTime = Date.now() - gameStartTime;
-      }
-      
-      // Run game loop
-      gameLoop();
-      
-    }, 1000 / 60); // 60 FPS
+    gameInterval = window.setInterval(gameLoop, 1000 / 60); // 60 FPS
     
     return () => {
       if (gameInterval) window.clearInterval(gameInterval);
