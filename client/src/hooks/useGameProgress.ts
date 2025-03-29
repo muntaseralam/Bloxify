@@ -103,7 +103,21 @@ export function useGameProgress(username: string | undefined) {
     try {
       const response = await apiRequest("POST", `/api/users/${username}/token`, {});
       
-      if (!response.ok) throw new Error("Failed to generate token");
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        // If the user has already completed the quest today
+        if (response.status === 400 && errorData.token) {
+          setToken(errorData.token);
+          toast({
+            title: "Daily Limit Reached",
+            description: errorData.message || "You already completed today's quest.",
+          });
+          return;
+        }
+        
+        throw new Error(errorData.message || "Failed to generate token");
+      }
 
       const data = await response.json();
       setToken(data.token);
@@ -116,7 +130,7 @@ export function useGameProgress(username: string | undefined) {
       console.error("Error generating token:", error);
       toast({
         title: "Token generation failed",
-        description: "There was a problem generating your access token",
+        description: error instanceof Error ? error.message : "There was a problem generating your access token",
         variant: "destructive",
       });
     }

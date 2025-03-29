@@ -6,6 +6,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(username: string, data: Partial<UpdateUser>): Promise<User | undefined>;
   generateTokenForUser(username: string): Promise<string | undefined>;
+  canUserCompleteQuestToday(username: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -38,6 +39,8 @@ export class MemStorage implements IStorage {
       gameCompleted: false,
       adsWatched: 0,
       token: null,
+      isTokenRedeemed: false,
+      lastQuestCompletedAt: null,
       createdAt: new Date(),
     };
     
@@ -80,6 +83,25 @@ export class MemStorage implements IStorage {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+  }
+  
+  async canUserCompleteQuestToday(username: string): Promise<boolean> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return true; // New users can always complete the quest
+    
+    // If user has no last completion date, they can complete the quest
+    if (!user.lastQuestCompletedAt) return true;
+    
+    // Check if the last completion was today
+    const lastCompleted = new Date(user.lastQuestCompletedAt);
+    const now = new Date();
+    
+    // Reset quest if it's a new day (compare year, month, day)
+    return (
+      lastCompleted.getFullYear() !== now.getFullYear() ||
+      lastCompleted.getMonth() !== now.getMonth() ||
+      lastCompleted.getDate() !== now.getDate()
+    );
   }
 }
 

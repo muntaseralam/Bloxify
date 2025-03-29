@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { AlertTriangle, Clock } from "lucide-react";
 
 interface TokenSectionProps {
   token: string;
@@ -87,6 +88,20 @@ const TokenSection = ({ token, username }: TokenSectionProps) => {
             <i className="fas fa-info-circle mr-1"></i> 
             Your token has been linked to your Roblox account: 
             <span className="font-bold ml-1">{username}</span>
+          </p>
+        </div>
+        
+        <div className="mt-2 bg-blue-600 bg-opacity-20 p-3 rounded-lg text-white">
+          <p className="text-sm flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2 text-yellow-400" /> 
+            This token can only be redeemed once for 1 in-game currency.
+          </p>
+        </div>
+        
+        <div className="mt-2 bg-blue-600 bg-opacity-20 p-3 rounded-lg text-white">
+          <p className="text-sm flex items-center">
+            <Clock className="h-4 w-4 mr-2 text-blue-400" /> 
+            Daily quest: You can earn one token per day. Come back tomorrow for another token!
           </p>
         </div>
       </div>

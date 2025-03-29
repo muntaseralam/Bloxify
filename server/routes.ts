@@ -81,6 +81,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
+      // Check if user can complete the quest today (daily limit)
+      const canCompleteToday = await storage.canUserCompleteQuestToday(username);
+      if (!canCompleteToday && user.token) {
+        return res.status(400).json({ 
+          message: "You've already completed today's quest. Come back tomorrow!",
+          token: user.token  // Return existing token for convenience
+        });
+      }
+      
       // Check if user has completed requirements
       if (!user.gameCompleted) {
         return res.status(400).json({ message: "You must complete the game first" });
@@ -92,17 +101,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(username, { adsWatched: 15 });
       }
       
-      // If user already has a token, return it
-      if (user.token) {
+      // If user already has a token from today that hasn't been redeemed, return it
+      if (user.token && !user.isTokenRedeemed && !canCompleteToday) {
         return res.json({ token: user.token });
       }
       
-      // Generate token
+      // For a new day, or if the previous token was redeemed, generate a new token
+      // and reset the redeemed status
       const token = await storage.generateTokenForUser(username);
       
       if (!token) {
         return res.status(500).json({ message: "Failed to generate token" });
       }
+      
+      // Update the last quest completion time and reset redeemed status
+      await storage.updateUser(username, {
+        lastQuestCompletedAt: new Date(),
+        isTokenRedeemed: false
+      });
       
       res.json({ token });
     } catch (error) {
@@ -134,12 +150,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if the token matches and is valid
       if (user.token === token) {
-        // Here you could optionally mark the token as redeemed
-        // by setting it to null or adding a "redeemed" flag
+        // Check if the token has been redeemed already
+        if (user.isTokenRedeemed === true) {
+          return res.status(400).json({
+            success: false,
+            message: "Token has already been redeemed"
+          });
+        }
+        
+        // Mark the token as redeemed
+        await storage.updateUser(username, { isTokenRedeemed: true });
         
         return res.json({ 
           success: true, 
-          message: "Token verified successfully",
+          message: "Token verified and redeemed successfully",
           username: user.username
         });
       } else {

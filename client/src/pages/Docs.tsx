@@ -65,10 +65,18 @@ export default function Docs() {
 local HttpService = game:GetService("HttpService")
 local API_URL = "${window.location.origin}/api/verify-token"
 
+-- Create a database to track which tokens have been used (tokens are one-time use only)
+local usedTokens = {}
+
 local function verifyToken(player, token)
     -- Make sure the token is valid format
     if not token or type(token) ~= "string" or #token < 10 then
         return false, "Invalid token format"
+    end
+    
+    -- Check if token has been used locally (backup validation)
+    if usedTokens[token] then
+        return false, "This token has already been used"
     end
     
     local success, result
@@ -96,6 +104,8 @@ local function verifyToken(player, token)
     
     -- Check if the token is valid
     if result.success then
+        -- Mark the token as used locally (backup validation)
+        usedTokens[token] = true
         return true, "Token verified successfully!"
     else
         return false, result.message or "Invalid token"
@@ -112,13 +122,15 @@ RedeemTokenFunction.OnServerInvoke = function(player, token)
     local success, message = verifyToken(player, token)
     
     if success then
-        -- Give the player their reward here
-        -- For example:
-        -- player.leaderstats.Coins.Value = player.leaderstats.Coins.Value + 100
+        -- Give the player their reward - exactly 1 in-game currency as specified
+        -- Modify this code to match your game's currency system
+        if player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Currency") then
+            player.leaderstats.Currency.Value = player.leaderstats.Currency.Value + 1
+        else
+            warn("Player does not have appropriate leaderstats. Currency not awarded.")
+        end
         
-        -- You could also mark the token as used to prevent multiple redemptions
-        
-        return {success = true, message = "You've received your reward!"}
+        return {success = true, message = "You've received 1 currency!"}
     else
         return {success = false, message = message}
     end
@@ -221,7 +233,7 @@ end)`}
               <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded-md text-sm">
 {`{
   "success": true,
-  "message": "Token verified successfully",
+  "message": "Token verified and redeemed successfully",
   "username": "RobloxUsername"
 }`}
               </pre>
@@ -229,7 +241,7 @@ end)`}
               <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded-md text-sm">
 {`{
   "success": false,
-  "message": "Invalid token" // or other error message
+  "message": "Invalid token" // or "Token has already been redeemed" or other error message
 }`}
               </pre>
             </div>
