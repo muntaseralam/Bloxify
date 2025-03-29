@@ -8,9 +8,11 @@ interface TokenSectionProps {
   token: string;
   username: string;
   tokenCount?: number;
+  onStartNewQuest?: () => void;
+  dailyQuestCount?: number;
 }
 
-const TokenSection = ({ token, username, tokenCount = 0 }: TokenSectionProps) => {
+const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQuestCount = 1 }: TokenSectionProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   
@@ -134,18 +136,30 @@ const TokenSection = ({ token, username, tokenCount = 0 }: TokenSectionProps) =>
                 </p>
               </div>
               
-              <Button 
-                className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
-                onClick={() => {
-                  toast({
-                    title: "Daily Quest",
-                    description: "Come back tomorrow to earn another token!",
-                  });
-                }}
-              >
-                <i className="fas fa-redo-alt mr-2"></i> 
-                Return Tomorrow
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {dailyQuestCount < 5 && onStartNewQuest ? (
+                  <Button 
+                    className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                    onClick={onStartNewQuest}
+                  >
+                    <i className="fas fa-play mr-2"></i> 
+                    Start New Quest
+                  </Button>
+                ) : (
+                  <Button 
+                    className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                    onClick={() => {
+                      toast({
+                        title: "Daily Quest Limit",
+                        description: "You've completed all your quests for today. Come back tomorrow for more!",
+                      });
+                    }}
+                  >
+                    <i className="fas fa-redo-alt mr-2"></i> 
+                    Return Tomorrow
+                  </Button>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -168,7 +182,7 @@ const TokenSection = ({ token, username, tokenCount = 0 }: TokenSectionProps) =>
         <div className="mt-2 bg-blue-600 bg-opacity-20 p-3 rounded-lg text-white">
           <p className="text-sm flex items-center">
             <Clock className="h-4 w-4 mr-2 text-blue-400" /> 
-            Daily quest: You can earn one token per day. Come back tomorrow for another token!
+            Daily quests: You've completed {dailyQuestCount}/5 quests today. Each quest earns 1 token.
           </p>
         </div>
       </div>

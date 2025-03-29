@@ -94,6 +94,8 @@ function BloxifyApp() {
                 token={token} 
                 username={user.username}
                 tokenCount={tokenCount}
+                dailyQuestCount={dailyQuestCount}
+                onStartNewQuest={dailyQuestCount < 5 ? startQuest : undefined}
               />
             )}
             
