@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   gameCompleted: boolean("game_completed").default(false).notNull(),
   adsWatched: integer("ads_watched").default(0).notNull(),
+  tokenCount: integer("token_count").default(0).notNull(),
   token: text("token"),
   isTokenRedeemed: boolean("is_token_redeemed").default(false),
   lastQuestCompletedAt: timestamp("last_quest_completed_at"),
@@ -20,6 +21,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const updateUserSchema = createInsertSchema(users).pick({
   gameCompleted: true,
   adsWatched: true,
+  tokenCount: true,
   token: true,
   isTokenRedeemed: true,
   lastQuestCompletedAt: true,

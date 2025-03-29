@@ -24,6 +24,7 @@ function BloxifyApp() {
     gameCompleted, 
     adsWatched, 
     totalAds, 
+    tokenCount,
     token,
     updateGameStatus,
     incrementAdCount,
@@ -58,6 +59,7 @@ function BloxifyApp() {
                 gameCompleted={gameCompleted}
                 adsWatched={adsWatched}
                 totalAds={totalAds}
+                tokenCount={tokenCount}
                 hasToken={!!token}
               />
             )}
@@ -89,6 +91,7 @@ function BloxifyApp() {
               <TokenSection 
                 token={token} 
                 username={user.username}
+                tokenCount={tokenCount}
               />
             )}
             

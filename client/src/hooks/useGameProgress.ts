@@ -6,6 +6,7 @@ export function useGameProgress(username: string | undefined) {
   const [currentStep, setCurrentStep] = useState(0);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [adsWatched, setAdsWatched] = useState(0);
+  const [tokenCount, setTokenCount] = useState(0);
   const [token, setToken] = useState<string | null>(null);
   const totalAds = 15;
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export function useGameProgress(username: string | undefined) {
         setCurrentStep(step);
         setGameCompleted(userData.gameCompleted);
         setAdsWatched(userData.adsWatched);
+        setTokenCount(userData.tokenCount || 0);
         setToken(userData.token);
       } catch (error) {
         console.error("Error fetching user progress:", error);
@@ -60,9 +62,20 @@ export function useGameProgress(username: string | undefined) {
       if (!response.ok) throw new Error("Failed to update game status");
 
       const updatedUser = await response.json();
+      const previousTokenCount = tokenCount;
       setCurrentStep(step);
       setGameCompleted(updatedUser.gameCompleted);
       setAdsWatched(updatedUser.adsWatched);
+      setTokenCount(updatedUser.tokenCount || 0);
+      
+      // Show notification when user earns a token
+      if ((updatedUser.tokenCount || 0) > previousTokenCount) {
+        toast({
+          title: "Token Earned!",
+          description: `You've earned a token! You now have ${updatedUser.tokenCount} token${updatedUser.tokenCount === 1 ? '' : 's'}.`,
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error("Error updating game status:", error);
       toast({
@@ -85,7 +98,18 @@ export function useGameProgress(username: string | undefined) {
       if (!response.ok) throw new Error("Failed to update ad count");
 
       const updatedUser = await response.json();
+      const previousTokenCount = tokenCount;
       setAdsWatched(updatedUser.adsWatched);
+      setTokenCount(updatedUser.tokenCount || 0);
+      
+      // Show notification when user earns a token
+      if ((updatedUser.tokenCount || 0) > previousTokenCount) {
+        toast({
+          title: "Token Earned!",
+          description: `You've earned a token! You now have ${updatedUser.tokenCount} token${updatedUser.tokenCount === 1 ? '' : 's'}.`,
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error("Error incrementing ad count:", error);
       toast({
@@ -106,12 +130,22 @@ export function useGameProgress(username: string | undefined) {
       if (!response.ok) {
         const errorData = await response.json();
         
-        // If the user has already completed the quest today
+        // If the user already has an active token
         if (response.status === 400 && errorData.token) {
           setToken(errorData.token);
           toast({
-            title: "Daily Limit Reached",
-            description: errorData.message || "You already completed today's quest.",
+            title: "Active Token",
+            description: errorData.message || "You already have an active token.",
+          });
+          return;
+        }
+        
+        // If user doesn't have enough tokens
+        if (response.status === 400 && errorData.tokensNeeded) {
+          toast({
+            title: "Not Enough Tokens",
+            description: errorData.message || "You need more tokens to redeem.",
+            variant: "destructive",
           });
           return;
         }
@@ -121,16 +155,17 @@ export function useGameProgress(username: string | undefined) {
 
       const data = await response.json();
       setToken(data.token);
+      setTokenCount(data.remainingTokens || 0);
       
       toast({
-        title: "Token Generated!",
-        description: "Your access token has been created successfully",
+        title: "Redemption Code Generated!",
+        description: data.message || "Your redemption code has been created successfully",
       });
     } catch (error) {
       console.error("Error generating token:", error);
       toast({
         title: "Token generation failed",
-        description: error instanceof Error ? error.message : "There was a problem generating your access token",
+        description: error instanceof Error ? error.message : "There was a problem generating your token",
         variant: "destructive",
       });
     }
@@ -141,6 +176,7 @@ export function useGameProgress(username: string | undefined) {
     gameCompleted,
     adsWatched,
     totalAds,
+    tokenCount,
     token,
     updateGameStatus,
     incrementAdCount,

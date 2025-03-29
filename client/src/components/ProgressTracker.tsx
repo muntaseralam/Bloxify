@@ -4,6 +4,7 @@ interface ProgressTrackerProps {
   gameCompleted: boolean;
   adsWatched: number;
   totalAds: number;
+  tokenCount: number; 
   hasToken: boolean;
 }
 
@@ -13,6 +14,7 @@ const ProgressTracker = ({
   gameCompleted, 
   adsWatched, 
   totalAds,
+  tokenCount,
   hasToken
 }: ProgressTrackerProps) => {
   const progressWidth = `${(currentStep / totalSteps) * 100}%`;
@@ -30,6 +32,36 @@ const ProgressTracker = ({
             className="h-full bg-gradient-to-r from-[#FF4500] to-[#FFD800] transition-all duration-500 ease-in-out" 
             style={{ width: progressWidth }}
           ></div>
+        </div>
+        
+        {/* Token Counter Display */}
+        <div className="flex justify-between items-center mt-3 mb-3 bg-blue-100 p-3 rounded-lg border-2 border-blue-500">
+          <div className="flex items-center">
+            <i className="fas fa-coins text-yellow-500 mr-2 text-xl"></i>
+            <span className="font-bold">Your Tokens:</span>
+          </div>
+          <div className="bg-blue-600 text-white font-bold py-1 px-3 rounded-full">
+            {tokenCount} / 10
+          </div>
+        </div>
+        
+        {/* Redemption Progress */}
+        <div className="mb-4">
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium">Redemption Progress</span>
+            <span className="text-sm font-medium">{tokenCount >= 10 ? "Ready!" : `${tokenCount}/10`}</span>
+          </div>
+          <div className="h-4 bg-white rounded-full overflow-hidden border-2 border-[#1A1A1A]">
+            <div 
+              className={`h-full ${tokenCount >= 10 ? 'bg-green-500' : 'bg-blue-500'} transition-all duration-500 ease-in-out`}
+              style={{ width: `${Math.min((tokenCount / 10) * 100, 100)}%` }}
+            ></div>
+          </div>
+          <p className="text-xs mt-1 text-gray-600">
+            {tokenCount >= 10 
+              ? "You can now redeem your tokens for a Blux code!" 
+              : `Collect ${10 - tokenCount} more tokens to redeem for Blux.`}
+          </p>
         </div>
         
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">

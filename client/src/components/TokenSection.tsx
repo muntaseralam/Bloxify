@@ -7,9 +7,10 @@ import { AlertTriangle, Clock } from "lucide-react";
 interface TokenSectionProps {
   token: string;
   username: string;
+  tokenCount?: number;
 }
 
-const TokenSection = ({ token, username }: TokenSectionProps) => {
+const TokenSection = ({ token, username, tokenCount = 0 }: TokenSectionProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   
@@ -45,48 +46,114 @@ const TokenSection = ({ token, username }: TokenSectionProps) => {
         <h3 className="text-xl font-bold mb-3 text-white">
           <i className="fas fa-trophy mr-2"></i> Congratulations, Quest Completed!
         </h3>
+
+        {/* Token Balance */}
+        <div className="bg-[#1A1A1A] p-3 rounded-lg mb-3 flex justify-between items-center">
+          <div className="flex items-center">
+            <div className="bg-yellow-500 p-2 rounded-full mr-2">
+              <i className="fas fa-coins text-[#1A1A1A]"></i>
+            </div>
+            <span className="text-white font-bold">Your Token Balance</span>
+          </div>
+          <div className="bg-blue-600 text-white font-bold py-1 px-3 rounded-full">
+            {tokenCount}
+          </div>
+        </div>
         
         <div className="bg-white p-6 rounded-lg text-center">
-          <div className="w-20 h-20 mx-auto bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4">
-            <i className="fas fa-ticket-alt text-[#FFD800] text-3xl"></i>
-          </div>
-          
-          <h4 className="text-xl font-bold mb-2">Your Access Token</h4>
-          <p className="text-sm text-gray-600 mb-4">Use this token to redeem your exclusive product access</p>
-          
-          <div className="bg-[#F2F2F2] p-4 rounded-lg mb-4 relative">
-            <p className="font-mono text-lg break-all">{token}</p>
-            <button 
-              onClick={handleCopyToken}
-              className="absolute top-2 right-2 text-[#00A2FF] hover:text-[#1A1A1A]"
-            >
-              <i className="fas fa-copy"></i>
-            </button>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button 
-              onClick={handleCopyToken}
-              className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
-            >
-              <i className={`${copied ? 'fas fa-check' : 'fas fa-copy'} mr-2`}></i> 
-              {copied ? 'Copied!' : 'Copy Token'}
-            </Button>
-            
-            <Link href="/docs">
+          {tokenCount >= 10 ? (
+            // Redemption UI when user has enough tokens
+            <>
+              <div className="w-20 h-20 mx-auto bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4">
+                <i className="fas fa-ticket-alt text-[#FFD800] text-3xl"></i>
+              </div>
+              
+              <h4 className="text-xl font-bold mb-2">Your Blux Redemption Code</h4>
+              <p className="text-sm text-gray-600 mb-4">Use this code in the Roblox game to receive Blux</p>
+              
+              <div className="bg-[#F2F2F2] p-4 rounded-lg mb-4 relative">
+                <p className="font-mono text-lg break-all">{token}</p>
+                <button 
+                  onClick={handleCopyToken}
+                  className="absolute top-2 right-2 text-[#00A2FF] hover:text-[#1A1A1A]"
+                >
+                  <i className="fas fa-copy"></i>
+                </button>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button 
+                  onClick={handleCopyToken}
+                  className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                >
+                  <i className={`${copied ? 'fas fa-check' : 'fas fa-copy'} mr-2`}></i> 
+                  {copied ? 'Copied!' : 'Copy Code'}
+                </Button>
+                
+                <Link href="/docs">
+                  <Button 
+                    className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                  >
+                    <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
+                  </Button>
+                </Link>
+              </div>
+              
+              <div className="mt-4 bg-green-100 p-3 rounded-lg text-green-800 border border-green-300">
+                <p className="flex items-center">
+                  <i className="fas fa-info-circle mr-2"></i>
+                  <span className="text-sm">10 tokens were deducted from your balance for this redemption code.</span>
+                </p>
+              </div>
+            </>
+          ) : (
+            // UI when user doesn't have enough tokens yet
+            <>
+              <div className="w-20 h-20 mx-auto bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4">
+                <i className="fas fa-coins text-[#FFD800] text-3xl"></i>
+              </div>
+              
+              <h4 className="text-xl font-bold mb-2">Keep Collecting Tokens!</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                You need 10 tokens to redeem for a Blux code. You have {tokenCount} so far.
+              </p>
+              
+              <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Redemption Progress</span>
+                  <span className="text-sm font-medium">{tokenCount}/10</span>
+                </div>
+                <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 transition-all duration-500 ease-in-out"
+                    style={{ width: `${Math.min((tokenCount / 10) * 100, 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs mt-2 text-gray-600">
+                  Complete daily quests to earn tokens. Each quest earns you 1 token.
+                </p>
+              </div>
+              
               <Button 
-                className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                onClick={() => {
+                  toast({
+                    title: "Daily Quest",
+                    description: "Come back tomorrow to earn another token!",
+                  });
+                }}
               >
-                <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
+                <i className="fas fa-redo-alt mr-2"></i> 
+                Return Tomorrow
               </Button>
-            </Link>
-          </div>
+            </>
+          )}
         </div>
         
         <div className="mt-4 bg-black bg-opacity-20 p-3 rounded-lg text-white">
           <p className="text-sm">
             <i className="fas fa-info-circle mr-1"></i> 
-            Your token has been linked to your Roblox account: 
+            Your tokens are linked to your Roblox account: 
             <span className="font-bold ml-1">{username}</span>
           </p>
         </div>
@@ -94,7 +161,7 @@ const TokenSection = ({ token, username }: TokenSectionProps) => {
         <div className="mt-2 bg-blue-600 bg-opacity-20 p-3 rounded-lg text-white">
           <p className="text-sm flex items-center">
             <AlertTriangle className="h-4 w-4 mr-2 text-yellow-400" /> 
-            This token can only be redeemed once for 1 in-game currency.
+            Each redemption code can only be used once and costs 10 tokens.
           </p>
         </div>
         

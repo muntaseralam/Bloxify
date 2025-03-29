@@ -38,6 +38,7 @@ export class MemStorage implements IStorage {
       username,
       gameCompleted: false,
       adsWatched: 0,
+      tokenCount: 0,
       token: null,
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
@@ -76,7 +77,7 @@ export class MemStorage implements IStorage {
     return token;
   }
 
-  private generateRandomString(length: number): string {
+  public generateRandomString(length: number): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     for (let i = 0; i < length; i++) {

@@ -54,11 +54,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username } = req.params;
       const updateData = updateUserSchema.partial().parse(req.body);
       
-      const updatedUser = await storage.updateUser(username, updateData);
-      
-      if (!updatedUser) {
+      // Get current user
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      
+      // Check if user has completed the quest requirements for a new token
+      // Token is awarded when user completes all ad views (needs both game completion and ad views)
+      if (user.gameCompleted && 
+          updateData.adsWatched !== undefined && 
+          updateData.adsWatched >= 15 && 
+          user.adsWatched < 15) {
+        
+        const canCompleteToday = await storage.canUserCompleteQuestToday(username);
+        
+        if (canCompleteToday) {
+          // Add a token to their count
+          updateData.tokenCount = (user.tokenCount || 0) + 1;
+          updateData.lastQuestCompletedAt = new Date();
+        }
+      }
+      // Also handle case where game completion is the last step
+      else if (updateData.gameCompleted === true && 
+               !user.gameCompleted && 
+               user.adsWatched >= 15) {
+        
+        const canCompleteToday = await storage.canUserCompleteQuestToday(username);
+        
+        if (canCompleteToday) {
+          // Add a token to their count
+          updateData.tokenCount = (user.tokenCount || 0) + 1;
+          updateData.lastQuestCompletedAt = new Date();
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(username, updateData);
       
       res.json(updatedUser);
     } catch (error) {
@@ -71,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Generate token for user
+  // Generate token for user when they redeem their accumulated tokens
   app.post("/api/users/:username/token", async (req, res) => {
     try {
       const { username } = req.params;
@@ -81,46 +112,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Check if user can complete the quest today (daily limit)
-      const canCompleteToday = await storage.canUserCompleteQuestToday(username);
-      if (!canCompleteToday && user.token) {
+      // Check if user has the minimum token count required (10)
+      if ((user.tokenCount || 0) < 10) {
         return res.status(400).json({ 
-          message: "You've already completed today's quest. Come back tomorrow!",
-          token: user.token  // Return existing token for convenience
+          message: `You need at least 10 tokens to redeem. You currently have ${user.tokenCount || 0} tokens.`,
+          tokensNeeded: 10 - (user.tokenCount || 0)
         });
       }
       
-      // Check if user has completed requirements
-      if (!user.gameCompleted) {
-        return res.status(400).json({ message: "You must complete the game first" });
+      // If user already has a token that hasn't been redeemed, return it
+      if (user.token && !user.isTokenRedeemed) {
+        return res.json({ 
+          token: user.token,
+          message: "You already have an active redemption code."
+        });
       }
       
-      // Temporary fix - allow token generation even if ads aren't fully watched (for demo)
-      if (user.adsWatched < 15) {
-        // Update user to mark all ads as watched
-        await storage.updateUser(username, { adsWatched: 15 });
-      }
+      // Generate a unique token
+      const token = `BLUX-${storage.generateRandomString(4)}-${storage.generateRandomString(4)}-${storage.generateRandomString(4)}`;
       
-      // If user already has a token from today that hasn't been redeemed, return it
-      if (user.token && !user.isTokenRedeemed && !canCompleteToday) {
-        return res.json({ token: user.token });
-      }
-      
-      // For a new day, or if the previous token was redeemed, generate a new token
-      // and reset the redeemed status
-      const token = await storage.generateTokenForUser(username);
-      
-      if (!token) {
-        return res.status(500).json({ message: "Failed to generate token" });
-      }
-      
-      // Update the last quest completion time and reset redeemed status
+      // Update user with the redemption token and reset token count
       await storage.updateUser(username, {
-        lastQuestCompletedAt: new Date(),
-        isTokenRedeemed: false
+        token,
+        isTokenRedeemed: false,
+        tokenCount: (user.tokenCount || 0) - 10 // Deduct 10 tokens for redemption
       });
       
-      res.json({ token });
+      res.json({ 
+        token,
+        message: "Successfully generated redemption code for 10 tokens.",
+        remainingTokens: (user.tokenCount || 0) - 10
+      });
+      
     } catch (error) {
       console.error("Token generation error:", error);
       res.status(500).json({ message: "Failed to generate token" });
