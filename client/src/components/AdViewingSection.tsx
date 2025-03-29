@@ -1,7 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import RewardedVideoAd from "./ads/RewardedVideoAd";
-import BannerAd from "./ads/BannerAd";
 
 interface AdViewingSectionProps {
   adsWatched: number;
@@ -12,6 +10,7 @@ interface AdViewingSectionProps {
 const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectionProps) => {
   const [isWatching, setIsWatching] = useState(false);
   const [allCompleted, setAllCompleted] = useState(false);
+  const [progress, setProgress] = useState(0);
   
   const progressWidth = `${(adsWatched / totalAds) * 100}%`;
   
@@ -21,24 +20,36 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
       return;
     }
     
-    // Start watching rewarded video ad
+    // Start watching rewarded video ad (simulated)
     setIsWatching(true);
+    setProgress(0);
   };
   
-  const handleAdComplete = () => {
-    // Ad completed successfully, give the reward
-    onAdWatched();
-    setIsWatching(false);
+  // Simulate ad watching with a progress bar
+  useEffect(() => {
+    if (!isWatching) return;
     
-    if (adsWatched + 1 >= totalAds) {
-      setAllCompleted(true);
-    }
-  };
-  
-  const handleAdCancel = () => {
-    // User canceled the ad, don't give a reward
-    setIsWatching(false);
-  };
+    const duration = 3000; // 3 seconds for testing
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + (100 / (duration / 100));
+        if (newProgress >= 100) {
+          setIsWatching(false);
+          onAdWatched();
+          
+          if (adsWatched + 1 >= totalAds) {
+            setAllCompleted(true);
+          }
+          
+          clearInterval(interval);
+          return 0;
+        }
+        return newProgress;
+      });
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, [isWatching, adsWatched, totalAds, onAdWatched]);
   
   return (
     <div className="mb-8">
@@ -60,13 +71,19 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
           </div>
         </div>
         
-        {/* Banner ad at the top */}
-        <div className="mb-4">
-          <BannerAd />
-        </div>
-        
         <div className="bg-black relative min-h-[250px] mb-4 flex items-center justify-center border-4 border-[#1A1A1A] shadow-inner">
-          {!isWatching && (
+          {isWatching ? (
+            <div className="text-center text-white p-4 w-full">
+              <div className="text-2xl mb-6">Watching Video Ad...</div>
+              <div className="w-3/4 mx-auto bg-gray-700 rounded-full h-5 mb-4">
+                <div 
+                  className="bg-blue-500 h-full rounded-full transition-all duration-100"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm opacity-70">Please wait while the ad plays</p>
+            </div>
+          ) : (
             <div className="text-center text-white p-4">
               <div className="text-5xl mb-4"><i className="fas fa-film"></i></div>
               <p className="text-lg font-bold">Rewarded Video</p>
@@ -125,15 +142,6 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
           </p>
         </div>
       </div>
-      
-      {/* Rewarded Video Ad Overlay */}
-      {isWatching && (
-        <RewardedVideoAd 
-          onComplete={handleAdComplete}
-          onCancel={handleAdCancel}
-          duration={3000} // 3 seconds for testing, would be longer in production
-        />
-      )}
     </div>
   );
 };

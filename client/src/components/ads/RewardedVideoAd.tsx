@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Check, X, Film } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
+import GoogleAdMob from './GoogleAdMob';
 
 interface RewardedVideoAdProps {
   onComplete: () => void;
@@ -10,147 +10,112 @@ interface RewardedVideoAdProps {
 
 const RewardedVideoAd = ({ 
   onComplete, 
-  onCancel = () => {}, 
-  duration = 5000 
+  onCancel,
+  duration = 15000 // Default 15 seconds for simulated ads
 }: RewardedVideoAdProps) => {
+  const { config } = useAdProvider();
   const [progress, setProgress] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
-  const [isError, setIsError] = useState(false);
+  const [showSimulatedAd, setShowSimulatedAd] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
   
+  // For simulated ads in development, we show a progress bar
   useEffect(() => {
-    const startTime = Date.now();
+    // Only run the simulation in development mode
+    if (config.isProduction) return;
+    
+    let startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / duration) * 100, 100);
+      const progressPercent = Math.min(100, (elapsed / duration) * 100);
+      setProgress(progressPercent);
       
-      setProgress(newProgress);
-      
-      if (newProgress >= 100) {
+      if (progressPercent >= 100) {
+        setIsCompleted(true);
         clearInterval(interval);
-        setIsComplete(true);
+        // Small delay before calling onComplete
+        setTimeout(() => {
+          onComplete();
+        }, 500);
       }
     }, 100);
     
-    // Simulate random failures (10% chance)
-    const failChance = Math.random();
-    if (failChance > 0.9) {
-      setTimeout(() => {
-        clearInterval(interval);
-        setIsError(true);
-      }, duration * 0.3);
-    }
-    
     return () => clearInterval(interval);
-  }, [duration]);
-  
-  const handleClaim = () => {
-    onComplete();
-  };
+  }, [config.isProduction, duration, onComplete]);
   
   const handleCancel = () => {
-    onCancel();
+    setShowSimulatedAd(false);
+    if (onCancel) onCancel();
   };
   
-  const handleRetry = () => {
-    setIsError(false);
-    setProgress(0);
-    
-    // Restart the video
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / duration) * 100, 100);
-      
-      setProgress(newProgress);
-      
-      if (newProgress >= 100) {
-        clearInterval(interval);
-        setIsComplete(true);
-      }
-    }, 100);
-    
-    return () => clearInterval(interval);
-  };
+  // If in production and using AdMob, use the real component
+  if (config.isProduction && config.admobAppId) {
+    return <GoogleAdMob onComplete={onComplete} onCancel={onCancel} />;
+  }
+  
+  // In development, show a simulated video ad
+  if (!showSimulatedAd) return null;
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
-      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <div className="text-lg font-bold text-gray-800">
-            {isError ? "Video Error" : isComplete ? "Video Complete" : "Rewarded Video"}
+      <SimulatedAdNotice>
+        <div className="bg-white rounded-lg overflow-hidden max-w-xl w-full relative">
+          <div className="bg-purple-600 text-white p-3 flex justify-between items-center">
+            <div className="font-bold">Rewarded Video Ad</div>
+            {!isCompleted && (
+              <button 
+                onClick={handleCancel} 
+                className="text-white hover:bg-purple-700 px-2 py-1 rounded"
+              >
+                Skip Ad
+              </button>
+            )}
           </div>
-          <button 
-            onClick={handleCancel}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        
-        <div className="bg-gray-100 aspect-video flex items-center justify-center relative overflow-hidden">
-          {isError ? (
-            <div className="text-center p-4">
-              <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">Video Failed to Load</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                There was an error loading the video advertisement.
-              </p>
-            </div>
-          ) : isComplete ? (
-            <div className="text-center p-4">
-              <Check className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">Video Complete!</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                You've earned a reward for watching this advertisement.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="absolute top-0 left-0 h-1 bg-blue-500" style={{ width: `${progress}%` }}></div>
-              <div className="text-center">
-                <Film className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold mb-2">Video Playing</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Please watch the full video to claim your reward.
-                </p>
-                <div className="text-blue-600 font-bold">
-                  Loading content...
+          
+          <div className="p-4">
+            <div className="aspect-video bg-gray-800 rounded overflow-hidden">
+              <div className="w-full h-full flex flex-col items-center justify-center">
+                <div className="text-white text-center mb-4">
+                  {isCompleted ? (
+                    <>
+                      <div className="text-green-500 text-xl mb-2">✓ Video Complete!</div>
+                      <p className="text-green-300">You've earned your reward</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl mb-2">Simulated Video Ad</div>
+                      <p className="text-gray-400">Watch to earn rewards</p>
+                    </>
+                  )}
                 </div>
+                
+                {!isCompleted && (
+                  <div className="w-3/4 bg-gray-700 rounded-full h-4 overflow-hidden">
+                    <div 
+                      className="bg-purple-500 h-full transition-all duration-300 ease-linear"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                )}
               </div>
-            </>
-          )}
-        </div>
-        
-        <div className="p-4 text-center">
-          {isError ? (
-            <div className="space-x-2">
-              <Button 
-                onClick={handleRetry}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                Try Again
-              </Button>
-              <Button 
-                onClick={handleCancel}
-                variant="outline"
-              >
-                Cancel
-              </Button>
             </div>
-          ) : isComplete ? (
-            <Button 
-              onClick={handleClaim}
-              className="bg-green-500 hover:bg-green-600 text-white"
-            >
-              Claim Reward
-            </Button>
-          ) : (
-            <div className="text-sm text-gray-600">
-              Please watch the entire video ({Math.round(progress)}% complete)
+            
+            <div className="mt-4 flex justify-center">
+              {isCompleted ? (
+                <button 
+                  onClick={onComplete}
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded"
+                >
+                  Claim Reward
+                </button>
+              ) : (
+                <div className="text-gray-500 text-sm">
+                  Please watch the entire video to earn your reward
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      </SimulatedAdNotice>
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Gift, Gamepad } from "lucide-react";
+import React from 'react';
+import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
 
 interface BannerAdProps {
   className?: string;
@@ -10,89 +10,98 @@ const BannerAd = ({
   className = "", 
   variant = "horizontal" 
 }: BannerAdProps) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { config } = useAdProvider();
   
-  useEffect(() => {
-    // Simulate ad loading
-    const timeout = setTimeout(() => {
-      setIsLoaded(true);
-    }, 1000);
-    
-    return () => clearTimeout(timeout);
-  }, []);
+  // Default styles based on variant
+  const containerStyle: React.CSSProperties = {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    minHeight: variant === 'horizontal' ? '90px' : '250px',
+    maxHeight: variant === 'horizontal' ? '90px' : '600px',
+  };
   
-  // Vertical banner ads
-  if (variant === "vertical") {
+  // For production implementations, you would use your chosen ad network here
+  if (config.isProduction) {
+    // Depending on which ad network is configured, render the appropriate component
+    switch (config.provider) {
+      case 'adsense':
+        // Use Google AdSense in production
+        return (
+          <div className={`banner-ad ${className}`} style={containerStyle}>
+            {/* This would be replaced with actual AdSense code in production */}
+            <div id="adsense-banner" style={containerStyle}></div>
+          </div>
+        );
+        
+      case 'adsterra':
+        // Use Adsterra in production
+        return (
+          <div className={`banner-ad ${className}`} style={containerStyle}>
+            {/* This would be replaced with actual Adsterra code in production */}
+            <div id="adsterra-banner" style={containerStyle}></div>
+          </div>
+        );
+        
+      case 'ezoic':
+        // Use Ezoic in production
+        return (
+          <div className={`banner-ad ${className}`} style={containerStyle}>
+            {/* This would be replaced with actual Ezoic code in production */}
+            <div id="ezoic-pub-ad-placeholder-banner" style={containerStyle}></div>
+          </div>
+        );
+        
+      default:
+        // Fallback to simulated ad
+        return renderSimulatedAd();
+    }
+  }
+  
+  // In development, show simulated banner ad
+  return renderSimulatedAd();
+  
+  function renderSimulatedAd() {
     return (
-      <div className={`bg-gray-100 border border-gray-200 rounded-lg overflow-hidden shadow-md mb-4 ${className}`}>
-        <div className="bg-blue-500 text-white text-xs px-2 py-1 text-center">ADVERTISEMENT</div>
-        <div className="p-2 h-full">
-          {isLoaded ? (
-            <div className="flex flex-col items-center justify-between h-full bg-white p-2 rounded">
-              <div className="text-center mb-2">
-                <div className="h-24 w-24 mx-auto bg-gradient-to-br from-blue-200 to-blue-100 rounded-full flex items-center justify-center mb-2">
-                  <Gift className="h-10 w-10 text-blue-500" />
+      <div className={`banner-ad ${className}`} style={containerStyle}>
+        <SimulatedAdNotice>
+          <div 
+            className="simulated-banner bg-gray-100 border border-gray-200 rounded p-2 w-full"
+            style={{
+              height: variant === 'horizontal' ? '90px' : '250px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: variant === 'horizontal' ? 'row' : 'column',
+              padding: '0.5rem',
+            }}
+          >
+            <div className="text-xs text-gray-500 font-bold mb-1">
+              {variant === 'horizontal' ? 'BANNER' : 'SKYSCRAPER'} ADVERTISEMENT
+            </div>
+            
+            {variant === 'horizontal' ? (
+              <div className="flex items-center w-full">
+                <div className="w-1/4 bg-gray-200 rounded h-12"></div>
+                <div className="flex-1 pl-2">
+                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                 </div>
-                <h4 className="font-bold text-sm text-gray-800">SPECIAL OFFER</h4>
-                <p className="text-xs text-gray-600">Limited time promotion!</p>
               </div>
-              
-              <div className="text-center my-2">
-                <p className="text-xs text-gray-600">Get incredible deals on your favorite games</p>
+            ) : (
+              <div className="w-full flex-1 flex flex-col items-center justify-center">
+                <div className="w-full h-24 bg-gray-200 rounded mb-2"></div>
+                <div className="w-4/5 h-3 bg-gray-200 rounded mb-2"></div>
+                <div className="w-3/5 h-3 bg-gray-200 rounded mb-2"></div>
+                <div className="w-2/3 h-6 bg-gray-300 rounded mt-2"></div>
               </div>
-              
-              <button className="bg-blue-500 text-white text-xs py-1 px-4 rounded-full w-full hover:bg-blue-600 transition-colors">
-                Learn More
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-between h-full bg-white p-2 rounded space-y-2">
-              <div className="w-20 h-20 bg-gray-200 rounded-full mx-auto"></div>
-              <div className="h-2 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-2 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-6 bg-gray-200 rounded w-full"></div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </SimulatedAdNotice>
       </div>
     );
   }
-  
-  // Horizontal banner ads (default)
-  return (
-    <div className={`bg-gray-100 border border-gray-200 rounded-lg overflow-hidden shadow-md ${className}`}>
-      <div className="bg-blue-500 text-white text-xs px-2 py-1 text-center">ADVERTISEMENT</div>
-      <div className="p-2">
-        {isLoaded ? (
-          <div className="flex items-center justify-between bg-white p-2 rounded">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-gradient-to-br from-blue-200 to-blue-100 rounded-full flex items-center justify-center mr-3">
-                <Gamepad className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm text-gray-800">Game Promotion</h4>
-                <p className="text-xs text-gray-600">Special rewards for players!</p>
-              </div>
-            </div>
-            <button className="bg-blue-500 text-white text-xs py-1 px-3 rounded-full hover:bg-blue-600 transition-colors">
-              Claim
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between bg-white p-2 rounded">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-gray-200 rounded-full mr-3"></div>
-              <div>
-                <div className="h-2 bg-gray-200 rounded w-24 mb-2"></div>
-                <div className="h-2 bg-gray-200 rounded w-32"></div>
-              </div>
-            </div>
-            <div className="h-6 w-12 bg-gray-200 rounded-full"></div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 };
 
 export default BannerAd;

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGameLogic } from "@/lib/gameLogic";
-import InterstitialAd from "./ads/InterstitialAd";
-import BannerAd from "./ads/BannerAd";
 
 interface MinigameSectionProps {
   onGameComplete: () => void;
@@ -35,13 +33,13 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
   const handleStartGame = () => {
     // Show interstitial ad before starting the game
     setShowInterstitial(true);
-  };
-  
-  const handleInterstitialClose = () => {
-    setShowInterstitial(false);
-    // Start the game after the interstitial closes
-    setGameActive(true);
-    startGame();
+    
+    // Auto start after a delay (in place of the interstitial ad)
+    setTimeout(() => {
+      setShowInterstitial(false);
+      setGameActive(true);
+      startGame();
+    }, 1000);
   };
   
   return (
@@ -65,11 +63,6 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           />
         </div>
         
-        {/* Banner ad below the game */}
-        <div className="mt-2">
-          <BannerAd />
-        </div>
-        
         <div className="mt-4 text-center">
           <Button 
             onClick={handleStartGame}
@@ -87,7 +80,7 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
                 <><i className="fas fa-spinner fa-spin mr-2"></i> Playing...</>
               ) : (
                 showInterstitial ? (
-                  <><i className="fas fa-spinner fa-spin mr-2"></i> Ad Playing...</>
+                  <><i className="fas fa-spinner fa-spin mr-2"></i> Loading...</>
                 ) : (
                   <><i className="fas fa-play mr-2"></i> Start Game</>
                 )
@@ -106,11 +99,6 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           </div>
         </div>
       </div>
-      
-      {/* Interstitial ad overlay */}
-      {showInterstitial && (
-        <InterstitialAd onClose={handleInterstitialClose} />
-      )}
     </div>
   );
 };
