@@ -89,13 +89,14 @@ function BloxifyApp() {
               />
             )}
             
-            {currentStep === 3 && token && (
+            {currentStep === 3 && (
               <TokenSection 
                 token={token} 
                 username={user.username}
                 tokenCount={tokenCount}
                 dailyQuestCount={dailyQuestCount}
                 onStartNewQuest={dailyQuestCount < 5 ? startQuest : undefined}
+                generateToken={generateToken}
               />
             )}
             

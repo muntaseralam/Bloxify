@@ -5,18 +5,20 @@ import { Link } from "wouter";
 import { AlertTriangle, Clock } from "lucide-react";
 
 interface TokenSectionProps {
-  token: string;
+  token: string | null;
   username: string;
   tokenCount?: number;
   onStartNewQuest?: () => void;
   dailyQuestCount?: number;
+  generateToken?: () => void;
 }
 
-const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQuestCount = 1 }: TokenSectionProps) => {
+const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQuestCount = 1, generateToken }: TokenSectionProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   
   const handleCopyToken = () => {
+    if (!token) return;
     navigator.clipboard.writeText(token).then(() => {
       setCopied(true);
       toast({
@@ -35,11 +37,14 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
   };
   
   const handleRedeemToken = () => {
-    toast({
-      title: "Redeem Token",
-      description: `Token ${token} would be redeemed in Roblox for username: ${username}`,
-    });
-    // In a real implementation, this would redirect to Roblox or invoke their API
+    if (generateToken) {
+      generateToken();
+    } else {
+      toast({
+        title: "Generate Token",
+        description: "Attempting to generate a new redemption code...",
+      });
+    }
   };
   
   return (
@@ -70,43 +75,70 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                 <i className="fas fa-ticket-alt text-[#FFD800] text-3xl"></i>
               </div>
               
-              <h4 className="text-xl font-bold mb-2">Your Blux Redemption Code</h4>
-              <p className="text-sm text-gray-600 mb-4">Use this code in the Roblox game to receive Blux</p>
-              
-              <div className="bg-[#F2F2F2] p-4 rounded-lg mb-4 relative">
-                <p className="font-mono text-lg break-all">{token}</p>
-                <button 
-                  onClick={handleCopyToken}
-                  className="absolute top-2 right-2 text-[#00A2FF] hover:text-[#1A1A1A]"
-                >
-                  <i className="fas fa-copy"></i>
-                </button>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
-                  onClick={handleCopyToken}
-                  className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
-                >
-                  <i className={`${copied ? 'fas fa-check' : 'fas fa-copy'} mr-2`}></i> 
-                  {copied ? 'Copied!' : 'Copy Code'}
-                </Button>
-                
-                <Link href="/docs">
+              {token ? (
+                // Show the redemption code if we have one
+                <>
+                  <h4 className="text-xl font-bold mb-2">Your Blux Redemption Code</h4>
+                  <p className="text-sm text-gray-600 mb-4">Use this code in the Roblox game to receive Blux</p>
+                  
+                  <div className="bg-[#F2F2F2] p-4 rounded-lg mb-4 relative">
+                    <p className="font-mono text-lg break-all">{token}</p>
+                    <button 
+                      onClick={handleCopyToken}
+                      className="absolute top-2 right-2 text-[#00A2FF] hover:text-[#1A1A1A]"
+                    >
+                      <i className="fas fa-copy"></i>
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button 
+                      onClick={handleCopyToken}
+                      className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                    >
+                      <i className={`${copied ? 'fas fa-check' : 'fas fa-copy'} mr-2`}></i> 
+                      {copied ? 'Copied!' : 'Copy Code'}
+                    </Button>
+                    
+                    <Link href="/docs">
+                      <Button 
+                        className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                      >
+                        <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
+                      </Button>
+                    </Link>
+                  </div>
+                  
+                  <div className="mt-4 bg-green-100 p-3 rounded-lg text-green-800 border border-green-300">
+                    <p className="flex items-center">
+                      <i className="fas fa-info-circle mr-2"></i>
+                      <span className="text-sm">10 tokens were deducted from your balance for this redemption code.</span>
+                    </p>
+                  </div>
+                </>
+              ) : (
+                // Show the Generate Token button
+                <>
+                  <h4 className="text-xl font-bold mb-2">Ready to Redeem!</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    You have enough tokens to generate a Blux redemption code.
+                  </p>
+                  
+                  <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
+                    <p className="text-sm text-yellow-800 mb-2">
+                      <i className="fas fa-info-circle mr-1"></i> 
+                      You have {tokenCount} tokens. Generating a code will use 10 tokens.
+                    </p>
+                  </div>
+                  
                   <Button 
-                    className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                    onClick={handleRedeemToken}
+                    className="game-button bg-[#FF4500] text-white font-bold py-3 px-8 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-orange-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
                   >
-                    <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
+                    <i className="fas fa-ticket-alt mr-2"></i> Generate Redemption Code
                   </Button>
-                </Link>
-              </div>
-              
-              <div className="mt-4 bg-green-100 p-3 rounded-lg text-green-800 border border-green-300">
-                <p className="flex items-center">
-                  <i className="fas fa-info-circle mr-2"></i>
-                  <span className="text-sm">10 tokens were deducted from your balance for this redemption code.</span>
-                </p>
-              </div>
+                </>
+              )}
             </>
           ) : (
             // UI when user doesn't have enough tokens yet
