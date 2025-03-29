@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGameLogic } from "@/lib/gameLogic";
+import InterstitialAd from "./ads/InterstitialAd";
+import BannerAd from "./ads/BannerAd";
 
 interface MinigameSectionProps {
   onGameComplete: () => void;
@@ -11,6 +13,7 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
   const [score, setScore] = useState(0);
   const [gameActive, setGameActive] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
+  const [showInterstitial, setShowInterstitial] = useState(false);
   
   const { initGame, startGame, updateScore } = useGameLogic(canvasRef, {
     onScoreChange: (newScore) => {
@@ -30,6 +33,13 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
   }, [initGame]);
   
   const handleStartGame = () => {
+    // Show interstitial ad before starting the game
+    setShowInterstitial(true);
+  };
+  
+  const handleInterstitialClose = () => {
+    setShowInterstitial(false);
+    // Start the game after the interstitial closes
     setGameActive(true);
     startGame();
   };
@@ -55,10 +65,15 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           />
         </div>
         
+        {/* Banner ad below the game */}
+        <div className="mt-2">
+          <BannerAd />
+        </div>
+        
         <div className="mt-4 text-center">
           <Button 
             onClick={handleStartGame}
-            disabled={gameActive || gameCompleted}
+            disabled={gameActive || gameCompleted || showInterstitial}
             className={`game-button font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] inline-flex items-center justify-center transition-all ${
               gameCompleted 
                 ? 'bg-[#4CAF50] text-white hover:bg-green-500' 
@@ -71,7 +86,11 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
               gameActive ? (
                 <><i className="fas fa-spinner fa-spin mr-2"></i> Playing...</>
               ) : (
-                <><i className="fas fa-play mr-2"></i> Start Game</>
+                showInterstitial ? (
+                  <><i className="fas fa-spinner fa-spin mr-2"></i> Ad Playing...</>
+                ) : (
+                  <><i className="fas fa-play mr-2"></i> Start Game</>
+                )
               )
             )}
           </Button>
@@ -87,6 +106,11 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           </div>
         </div>
       </div>
+      
+      {/* Interstitial ad overlay */}
+      {showInterstitial && (
+        <InterstitialAd onClose={handleInterstitialClose} />
+      )}
     </div>
   );
 };

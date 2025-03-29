@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import RewardedVideoAd from "./ads/RewardedVideoAd";
+import BannerAd from "./ads/BannerAd";
 
 interface AdViewingSectionProps {
   adsWatched: number;
@@ -19,17 +21,23 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
       return;
     }
     
+    // Start watching rewarded video ad
     setIsWatching(true);
+  };
+  
+  const handleAdComplete = () => {
+    // Ad completed successfully, give the reward
+    onAdWatched();
+    setIsWatching(false);
     
-    // Simulate ad watching with a delay
-    setTimeout(() => {
-      onAdWatched();
-      setIsWatching(false);
-      
-      if (adsWatched + 1 >= totalAds) {
-        setAllCompleted(true);
-      }
-    }, 2000);
+    if (adsWatched + 1 >= totalAds) {
+      setAllCompleted(true);
+    }
+  };
+  
+  const handleAdCancel = () => {
+    // User canceled the ad, don't give a reward
+    setIsWatching(false);
   };
   
   return (
@@ -52,18 +60,23 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
           </div>
         </div>
         
+        {/* Banner ad at the top */}
+        <div className="mb-4">
+          <BannerAd />
+        </div>
+        
         <div className="bg-black relative min-h-[250px] mb-4 flex items-center justify-center border-4 border-[#1A1A1A] shadow-inner">
-          {isWatching ? (
-            <div className="text-center text-white p-4 animate-pulse">
-              <div className="text-5xl mb-4"><i className="fas fa-tv"></i></div>
-              <p className="text-lg font-bold">Ad Playing...</p>
-              <p className="text-sm opacity-70">Please wait while the advertisement is displayed</p>
-            </div>
-          ) : (
+          {!isWatching && (
             <div className="text-center text-white p-4">
-              <div className="text-5xl mb-4"><i className="fas fa-tv"></i></div>
-              <p className="text-lg font-bold">Ad Ready</p>
-              <p className="text-sm opacity-70">Click the button below to watch the next advertisement</p>
+              <div className="text-5xl mb-4"><i className="fas fa-film"></i></div>
+              <p className="text-lg font-bold">Rewarded Video</p>
+              <p className="text-sm opacity-70">Watch video ads to earn tokens!</p>
+              <div className="mt-4 bg-blue-500 bg-opacity-20 p-3 rounded-lg">
+                <p className="text-sm flex items-center">
+                  <i className="fas fa-info-circle mr-2"></i>
+                  Watch all {totalAds} ads to complete this quest and earn 1 token
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -84,14 +97,43 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
               isWatching ? (
                 <><i className="fas fa-spinner fa-spin mr-2"></i> Watching...</>
               ) : (
-                <><i className="fas fa-play mr-2"></i> Watch Next Ad</>
+                <><i className="fas fa-play mr-2"></i> Watch Video Ad ({adsWatched+1}/{totalAds})</>
               )
             )}
           </Button>
           
-          <p className="mt-3 text-sm text-gray-600">Watch all {totalAds} ads to continue your quest!</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {Array.from({ length: totalAds }).map((_, index) => (
+              <div 
+                key={index}
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                  ${index < adsWatched 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-gray-200 text-gray-500'
+                  }`}
+              >
+                {index + 1}
+              </div>
+            ))}
+          </div>
+          
+          <p className="mt-3 text-sm text-gray-600">
+            {allCompleted 
+              ? 'Great job! You\'ve completed all the ads for this quest.' 
+              : `Watch ${totalAds - adsWatched} more ads to complete this quest!`
+            }
+          </p>
         </div>
       </div>
+      
+      {/* Rewarded Video Ad Overlay */}
+      {isWatching && (
+        <RewardedVideoAd 
+          onComplete={handleAdComplete}
+          onCancel={handleAdCancel}
+          duration={3000} // 3 seconds for testing, would be longer in production
+        />
+      )}
     </div>
   );
 };
