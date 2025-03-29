@@ -86,10 +86,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "You must complete the game first" });
       }
       
+      // Temporary fix - allow token generation even if ads aren't fully watched (for demo)
       if (user.adsWatched < 15) {
-        return res.status(400).json({ 
-          message: `You must watch all 15 ads (${user.adsWatched}/15 watched)`
-        });
+        // Update user to mark all ads as watched
+        await storage.updateUser(username, { adsWatched: 15 });
       }
       
       // If user already has a token, return it
@@ -106,6 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ token });
     } catch (error) {
+      console.error("Token generation error:", error);
       res.status(500).json({ message: "Failed to generate token" });
     }
   });

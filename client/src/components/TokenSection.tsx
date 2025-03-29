@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 interface TokenSectionProps {
   token: string;
@@ -71,12 +72,13 @@ const TokenSection = ({ token, username }: TokenSectionProps) => {
               {copied ? 'Copied!' : 'Copy Token'}
             </Button>
             
-            <Button 
-              onClick={handleRedeemToken}
-              className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
-            >
-              <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
-            </Button>
+            <Link href="/docs">
+              <Button 
+                className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+              >
+                <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
+              </Button>
+            </Link>
           </div>
         </div>
         
