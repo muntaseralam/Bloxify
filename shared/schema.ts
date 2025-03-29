@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   token: text("token"),
   isTokenRedeemed: boolean("is_token_redeemed").default(false),
   lastQuestCompletedAt: timestamp("last_quest_completed_at"),
+  dailyQuestCount: integer("daily_quest_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -25,6 +26,7 @@ export const updateUserSchema = createInsertSchema(users).pick({
   token: true,
   isTokenRedeemed: true,
   lastQuestCompletedAt: true,
+  dailyQuestCount: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

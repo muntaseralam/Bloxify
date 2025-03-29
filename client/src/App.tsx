@@ -26,6 +26,7 @@ function BloxifyApp() {
     totalAds, 
     tokenCount,
     token,
+    dailyQuestCount,
     updateGameStatus,
     incrementAdCount,
     generateToken
@@ -61,6 +62,7 @@ function BloxifyApp() {
                 totalAds={totalAds}
                 tokenCount={tokenCount}
                 hasToken={!!token}
+                dailyQuestCount={dailyQuestCount}
               />
             )}
             

@@ -8,6 +8,7 @@ export function useGameProgress(username: string | undefined) {
   const [adsWatched, setAdsWatched] = useState(0);
   const [tokenCount, setTokenCount] = useState(0);
   const [token, setToken] = useState<string | null>(null);
+  const [dailyQuestCount, setDailyQuestCount] = useState(0);
   const totalAds = 15;
   const { toast } = useToast();
 
@@ -37,6 +38,7 @@ export function useGameProgress(username: string | undefined) {
         setAdsWatched(userData.adsWatched);
         setTokenCount(userData.tokenCount || 0);
         setToken(userData.token);
+        setDailyQuestCount(userData.dailyQuestCount || 0);
       } catch (error) {
         console.error("Error fetching user progress:", error);
       }
@@ -67,6 +69,7 @@ export function useGameProgress(username: string | undefined) {
       setGameCompleted(updatedUser.gameCompleted);
       setAdsWatched(updatedUser.adsWatched);
       setTokenCount(updatedUser.tokenCount || 0);
+      setDailyQuestCount(updatedUser.dailyQuestCount || 0);
       
       // Show notification when user earns a token
       if ((updatedUser.tokenCount || 0) > previousTokenCount) {
@@ -101,6 +104,7 @@ export function useGameProgress(username: string | undefined) {
       const previousTokenCount = tokenCount;
       setAdsWatched(updatedUser.adsWatched);
       setTokenCount(updatedUser.tokenCount || 0);
+      setDailyQuestCount(updatedUser.dailyQuestCount || 0);
       
       // Show notification when user earns a token
       if ((updatedUser.tokenCount || 0) > previousTokenCount) {
@@ -178,6 +182,7 @@ export function useGameProgress(username: string | undefined) {
     totalAds,
     tokenCount,
     token,
+    dailyQuestCount,
     updateGameStatus,
     incrementAdCount,
     generateToken

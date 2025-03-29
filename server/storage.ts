@@ -42,6 +42,7 @@ export class MemStorage implements IStorage {
       token: null,
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
+      dailyQuestCount: 0,
       createdAt: new Date(),
     };
     
@@ -97,12 +98,20 @@ export class MemStorage implements IStorage {
     const lastCompleted = new Date(user.lastQuestCompletedAt);
     const now = new Date();
     
-    // Reset quest if it's a new day (compare year, month, day)
-    return (
+    // Reset quest count if it's a new day (compare year, month, day)
+    const isNewDay = 
       lastCompleted.getFullYear() !== now.getFullYear() ||
       lastCompleted.getMonth() !== now.getMonth() ||
-      lastCompleted.getDate() !== now.getDate()
-    );
+      lastCompleted.getDate() !== now.getDate();
+    
+    if (isNewDay) {
+      // Reset the daily quest count to 0 if it's a new day
+      await this.updateUser(username, { dailyQuestCount: 0 });
+      return true;
+    }
+    
+    // Check if the user has completed fewer than 5 quests today
+    return (user.dailyQuestCount || 0) < 5;
   }
 }
 

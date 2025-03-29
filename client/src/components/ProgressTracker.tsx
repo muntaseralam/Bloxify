@@ -6,6 +6,7 @@ interface ProgressTrackerProps {
   totalAds: number;
   tokenCount: number; 
   hasToken: boolean;
+  dailyQuestCount?: number;
 }
 
 const ProgressTracker = ({ 
@@ -15,7 +16,8 @@ const ProgressTracker = ({
   adsWatched, 
   totalAds,
   tokenCount,
-  hasToken
+  hasToken,
+  dailyQuestCount = 0
 }: ProgressTrackerProps) => {
   const progressWidth = `${(currentStep / totalSteps) * 100}%`;
   
@@ -32,6 +34,24 @@ const ProgressTracker = ({
             className="h-full bg-gradient-to-r from-[#FF4500] to-[#FFD800] transition-all duration-500 ease-in-out" 
             style={{ width: progressWidth }}
           ></div>
+        </div>
+        
+        {/* Daily Quest Counter */}
+        <div className="mt-3 mb-3 bg-green-100 p-3 rounded-lg border-2 border-green-500">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <i className="fas fa-calendar-check text-green-600 mr-2 text-xl"></i>
+              <span className="font-bold">Daily Quests:</span>
+            </div>
+            <div className="bg-green-600 text-white font-bold py-1 px-3 rounded-full">
+              {dailyQuestCount} / 5
+            </div>
+          </div>
+          <p className="text-xs mt-2 text-gray-700">
+            {dailyQuestCount >= 5 
+              ? "You've completed all your quests for today! Come back tomorrow for more."
+              : `You can complete ${5 - dailyQuestCount} more quest${5 - dailyQuestCount === 1 ? '' : 's'} today to earn tokens!`}
+          </p>
         </div>
         
         {/* Token Counter Display */}

@@ -73,6 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Add a token to their count
           updateData.tokenCount = (user.tokenCount || 0) + 1;
           updateData.lastQuestCompletedAt = new Date();
+          updateData.dailyQuestCount = (user.dailyQuestCount || 0) + 1;
         }
       }
       // Also handle case where game completion is the last step
@@ -86,6 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Add a token to their count
           updateData.tokenCount = (user.tokenCount || 0) + 1;
           updateData.lastQuestCompletedAt = new Date();
+          updateData.dailyQuestCount = (user.dailyQuestCount || 0) + 1;
         }
       }
       
