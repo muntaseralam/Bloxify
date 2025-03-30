@@ -25,12 +25,12 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return this.usersByUsername.get(username.toLowerCase());
+    return this.usersByUsername.get(username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    const username = insertUser.username.toLowerCase();
+    const username = insertUser.username;
     
     // Create a new user object
     const user: User = {
@@ -57,7 +57,7 @@ export class MemStorage implements IStorage {
 
     const updatedUser = { ...user, ...data };
     this.users.set(user.id, updatedUser);
-    this.usersByUsername.set(username.toLowerCase(), updatedUser);
+    this.usersByUsername.set(username, updatedUser);
     return updatedUser;
   }
 
