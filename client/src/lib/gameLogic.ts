@@ -24,6 +24,19 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
   let score = 0;
   let gameInterval: number | null = null;
   let keys: Record<string, boolean> = {};
+  let touchControls: {
+    active: boolean;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } = {
+    active: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0
+  };
   
   const { onScoreChange } = options;
   
@@ -56,15 +69,33 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     
+    // Add touch event listeners for mobile
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+    
     // Initial message
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '20px Nunito, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Press "Start Game" to begin!', canvas.width / 2, canvas.height / 2 + 80);
     
+    // Draw touch controls info for mobile
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      ctx.font = '16px Nunito, sans-serif';
+      ctx.fillText('Touch and drag to move', canvas.width / 2, canvas.height / 2 + 110);
+    }
+    
     return () => {
+      // Clean up event listeners
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener('touchstart', handleTouchStart);
+        canvas.removeEventListener('touchmove', handleTouchMove);
+        canvas.removeEventListener('touchend', handleTouchEnd);
+      }
       if (gameInterval) window.clearInterval(gameInterval);
     };
   }, [canvasRef]);
@@ -76,6 +107,50 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
   
   const handleKeyUp = (e: KeyboardEvent) => {
     keys[e.key.toLowerCase()] = false;
+  };
+  
+  // Handle touch events for mobile devices
+  const handleTouchStart = (e: TouchEvent) => {
+    e.preventDefault(); // Prevent default touch behavior like scrolling
+    
+    const touch = e.touches[0];
+    if (touch) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      // Get touch position relative to canvas
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      touchControls.active = true;
+      touchControls.startX = x;
+      touchControls.startY = y;
+      touchControls.currentX = x;
+      touchControls.currentY = y;
+    }
+  };
+  
+  const handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault(); // Prevent default touch behavior
+    
+    if (!touchControls.active) return;
+    
+    const touch = e.touches[0];
+    if (touch) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      // Get touch position relative to canvas
+      const rect = canvas.getBoundingClientRect();
+      touchControls.currentX = touch.clientX - rect.left;
+      touchControls.currentY = touch.clientY - rect.top;
+    }
+  };
+  
+  const handleTouchEnd = (e: TouchEvent) => {
+    e.preventDefault(); // Prevent default touch behavior
+    touchControls.active = false;
   };
   
   // Draw a game entity
@@ -158,8 +233,52 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
     if (keys['a'] || keys['arrowleft']) player.x = Math.max(0, player.x - playerSpeed);
     if (keys['d'] || keys['arrowright']) player.x = Math.min(canvas.width - player.width, player.x + playerSpeed);
     
+    // Move player based on touch input
+    if (touchControls.active) {
+      // Calculate the direction between current and initial touch position
+      const dx = touchControls.currentX - touchControls.startX;
+      const dy = touchControls.currentY - touchControls.startY;
+      
+      // Apply movement if the touch drag is significant enough (to prevent minor accidental movements)
+      const minDragDistance = 5;
+      
+      if (Math.abs(dx) > minDragDistance) {
+        // Move horizontally
+        player.x += Math.sign(dx) * playerSpeed;
+        // Keep player within canvas boundaries
+        player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+      }
+      
+      if (Math.abs(dy) > minDragDistance) {
+        // Move vertically
+        player.y += Math.sign(dy) * playerSpeed;
+        // Keep player within canvas boundaries
+        player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+      }
+      
+      // Update the start position to create a continuous movement
+      // This makes the control feel more responsive
+      touchControls.startX = touchControls.currentX;
+      touchControls.startY = touchControls.currentY;
+    }
+    
     // Draw player
     drawEntity(ctx, player);
+    
+    // Draw touch joystick indicator on mobile
+    if (touchControls.active) {
+      const joystickRadius = 20;
+      
+      // Draw transparent circle at touch point
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(touchControls.currentX, touchControls.currentY, joystickRadius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Reset transparency
+      ctx.globalAlpha = 1.0;
+    }
     
     // Check if we need more coins
     if (coins.length < 5) {

@@ -101,7 +101,8 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           <div className="text-white mt-4 bg-black bg-opacity-50 p-3 rounded-lg text-left max-w-2xl mx-auto">
             <p className="font-bold mb-2"><i className="fas fa-info-circle mr-1"></i> How to Play:</p>
             <ul className="list-disc pl-5 text-sm space-y-1">
-              <li>Use arrow keys or WASD to move your character</li>
+              <li className="hidden md:block">Use arrow keys or WASD to move your character</li>
+              <li className="md:hidden">Touch and drag on the screen to move your character</li>
               <li>Collect 20 coins to complete the challenge</li>
               <li>Avoid enemies (red blocks) that will reduce your score</li>
               <li>Complete within 60 seconds to succeed</li>
