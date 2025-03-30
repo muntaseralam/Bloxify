@@ -3,7 +3,6 @@ import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AdProviderProvider } from "./context/AdProviderContext";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -17,11 +16,6 @@ import NotFound from "@/pages/not-found";
 import Docs from "@/pages/Docs";
 import { useRobloxUser } from "./hooks/useRobloxUser";
 import { useGameProgress } from "./hooks/useGameProgress";
-import SimpleTestComponent from "./components/test";
-import ErrorBoundary from "./components/ErrorBoundary";
-
-// IMPORTANT: Set this to true when you're ready to publish with real ad networks
-const IS_PRODUCTION = false;
 
 function BloxifyApp() {
   const { user, login, logout } = useRobloxUser();
@@ -124,51 +118,33 @@ function BloxifyApp() {
 }
 
 function App() {
-  // Configure ad provider settings
-  const adConfig = {
-    provider: 'simulated' as const, // Options: 'adsense', 'admob', 'ezoic', 'adsterra', 'simulated'
-    adsenseClientId: 'YOUR_ADSENSE_CLIENT_ID', // Replace with your AdSense Publisher ID when publishing
-    admobAppId: 'YOUR_ADMOB_APP_ID', // Replace with your AdMob App ID when publishing
-    ezoicSiteId: 'YOUR_EZOIC_SITE_ID', // Replace with your Ezoic Site ID when publishing
-    adsterraAccountId: 'YOUR_ADSTERRA_ACCOUNT_ID', // Replace with your Adsterra Account ID when publishing
-    isProduction: IS_PRODUCTION, // Toggle this to true when ready to publish with real ads
-  };
-
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AdProviderProvider initialConfig={adConfig}>
-          <div className="min-h-screen bg-[#F2F2F2] font-['Nunito',sans-serif] bg-gradient-to-br from-[#F2F2F2] to-[#E0E0E0]">
-            <nav className="bg-[#1A1A1A] text-white p-4">
-              <div className="container mx-auto flex justify-between items-center">
-                <div className="font-bold text-xl">
-                  <Link href="/">
-                    <span className="cursor-pointer">BloxToken</span>
-                  </Link>
-                </div>
-                <div>
-                  <Link href="/docs">
-                    <span className="cursor-pointer hover:text-blue-400 transition-colors">
-                      Developer Guide
-                    </span>
-                  </Link>
-                </div>
-              </div>
-            </nav>
-            
-            <Switch>
-              <Route path="/">
-                <ErrorBoundary>
-                  <BloxifyApp />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/docs" component={Docs} />
-              <Route component={NotFound} />
-            </Switch>
+    <QueryClientProvider client={queryClient}>
+      <div className="min-h-screen bg-[#F2F2F2] font-['Nunito',sans-serif] bg-gradient-to-br from-[#F2F2F2] to-[#E0E0E0]">
+        <nav className="bg-[#1A1A1A] text-white p-4">
+          <div className="container mx-auto flex justify-between items-center">
+            <div className="font-bold text-xl">
+              <Link href="/">
+                <span className="cursor-pointer">BloxToken</span>
+              </Link>
+            </div>
+            <div>
+              <Link href="/docs">
+                <span className="cursor-pointer hover:text-blue-400 transition-colors">
+                  Developer Guide
+                </span>
+              </Link>
+            </div>
           </div>
-        </AdProviderProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+        </nav>
+        
+        <Switch>
+          <Route path="/" component={BloxifyApp} />
+          <Route path="/docs" component={Docs} />
+          <Route component={NotFound} />
+        </Switch>
+      </div>
+    </QueryClientProvider>
   );
 }
 

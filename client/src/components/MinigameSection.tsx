@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGameLogic } from "@/lib/gameLogic";
-import { useAdProvider } from '../context/AdProviderContext';
-import AdsterraAd from "./ads/AdsterraAd";
-import BannerAd from "./ads/BannerAd";
-import EzoicAd from "./ads/EzoicAd";
 
 interface MinigameSectionProps {
   onGameComplete: () => void;
@@ -16,7 +12,6 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
   const [gameActive, setGameActive] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [showInterstitial, setShowInterstitial] = useState(false);
-  const { config } = useAdProvider();
   
   const { initGame, startGame, updateScore } = useGameLogic(canvasRef, {
     onScoreChange: (newScore) => {
@@ -35,24 +30,16 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
     }
   }, [initGame]);
   
-  useEffect(() => {
-    // Display Adsterra popup ad when component mounts (in production mode)
-    if (config.isProduction && config.adsterraAccountId) {
-      // The Adsterra popup will be handled by the script
-      // No need to show anything visually
-    }
-  }, [config.isProduction, config.adsterraAccountId]);
-  
   const handleStartGame = () => {
     // Show interstitial ad before starting the game
     setShowInterstitial(true);
-  };
-  
-  const handleInterstitialClose = () => {
-    setShowInterstitial(false);
-    // Start the game after the interstitial closes
-    setGameActive(true);
-    startGame();
+    
+    // Auto start after a delay (in place of the interstitial ad)
+    setTimeout(() => {
+      setShowInterstitial(false);
+      setGameActive(true);
+      startGame();
+    }, 1000);
   };
   
   return (
@@ -67,11 +54,6 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           </div>
         </div>
         
-        {/* Ezoic ad placement above the game */}
-        <div className="mb-4">
-          <EzoicAd id={101} />
-        </div>
-        
         <div className="bg-black rounded-lg overflow-hidden mx-auto max-w-2xl">
           <canvas 
             ref={canvasRef}
@@ -79,11 +61,6 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
             height={360}
             className="w-full h-auto"
           />
-        </div>
-        
-        {/* Banner ad below the game */}
-        <div className="mt-2">
-          <BannerAd variant="horizontal" />
         </div>
         
         <div className="mt-4 text-center">
@@ -103,7 +80,7 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
                 <><i className="fas fa-spinner fa-spin mr-2"></i> Playing...</>
               ) : (
                 showInterstitial ? (
-                  <><i className="fas fa-spinner fa-spin mr-2"></i> Ad Playing...</>
+                  <><i className="fas fa-spinner fa-spin mr-2"></i> Loading...</>
                 ) : (
                   <><i className="fas fa-play mr-2"></i> Start Game</>
                 )
@@ -122,33 +99,6 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           </div>
         </div>
       </div>
-      
-      {/* Adsterra Popup Ad - No visual component needed, handled by Adsterra script */}
-      {config.isProduction && config.adsterraAccountId && (
-        <AdsterraAd 
-          type="popup"
-          zoneId="YOUR_ADSTERRA_POPUP_ZONE_ID" // Replace when publishing
-        />
-      )}
-      
-      {/* Interstitial ad overlay */}
-      {showInterstitial && (
-        config.isProduction && config.adsterraAccountId ? (
-          // Use Adsterra Interstitial in production
-          <AdsterraAd 
-            type="interstitial"
-            zoneId="YOUR_ADSTERRA_INTERSTITIAL_ZONE_ID" // Replace when publishing
-            onClose={handleInterstitialClose}
-          />
-        ) : (
-          // Use simulated interstitial in development
-          <AdsterraAd
-            type="interstitial"
-            zoneId="dev-mode"
-            onClose={handleInterstitialClose}
-          />
-        )
-      )}
     </div>
   );
 };

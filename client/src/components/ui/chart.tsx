@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 const THEMES = { light: "", dark: ".dark" } as const
 
 export type ChartConfig = {
-  [k: string]: {
+  [k in string]: {
     label?: React.ReactNode
     icon?: React.ComponentType
   } & (
@@ -348,19 +348,9 @@ function getPayloadConfigFromPayload(
     ] as string
   }
 
-  // Add safety check
-  if (!config) {
-    return undefined;
-  }
-
-  // Prevent error when config is missing key
-  if (configLabelKey in config) {
-    return config[configLabelKey];
-  } else if (key in config) {
-    return config[key as keyof typeof config];
-  } else {
-    return undefined;
-  }
+  return configLabelKey in config
+    ? config[configLabelKey]
+    : config[key as keyof typeof config]
 }
 
 export {
