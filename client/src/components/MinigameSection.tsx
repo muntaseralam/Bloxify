@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGameLogic } from "@/lib/gameLogic";
+import { useAdProvider } from "@/context/AdProviderContext";
+import BannerAd from "./ads/BannerAd";
+import AdsterraAd from "./ads/AdsterraAd";
+import InterstitialAd from "./ads/InterstitialAd";
 
 interface MinigameSectionProps {
   onGameComplete: () => void;
@@ -12,6 +16,7 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
   const [gameActive, setGameActive] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [showInterstitial, setShowInterstitial] = useState(false);
+  const { config } = useAdProvider();
   
   const { initGame, startGame, updateScore } = useGameLogic(canvasRef, {
     onScoreChange: (newScore) => {
@@ -33,13 +38,13 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
   const handleStartGame = () => {
     // Show interstitial ad before starting the game
     setShowInterstitial(true);
-    
-    // Auto start after a delay (in place of the interstitial ad)
-    setTimeout(() => {
-      setShowInterstitial(false);
-      setGameActive(true);
-      startGame();
-    }, 1000);
+  };
+  
+  const handleInterstitialClose = () => {
+    setShowInterstitial(false);
+    // Start the game after the interstitial closes
+    setGameActive(true);
+    startGame();
   };
   
   return (
@@ -63,6 +68,11 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           />
         </div>
         
+        {/* Banner ad below the game */}
+        <div className="mt-2">
+          <BannerAd variant="horizontal" />
+        </div>
+        
         <div className="mt-4 text-center">
           <Button 
             onClick={handleStartGame}
@@ -80,7 +90,7 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
                 <><i className="fas fa-spinner fa-spin mr-2"></i> Playing...</>
               ) : (
                 showInterstitial ? (
-                  <><i className="fas fa-spinner fa-spin mr-2"></i> Loading...</>
+                  <><i className="fas fa-spinner fa-spin mr-2"></i> Ad Playing...</>
                 ) : (
                   <><i className="fas fa-play mr-2"></i> Start Game</>
                 )
@@ -99,6 +109,29 @@ const MinigameSection = ({ onGameComplete }: MinigameSectionProps) => {
           </div>
         </div>
       </div>
+      
+      {/* Adsterra Popup Ad - shown when user starts the game */}
+      {config.provider === 'adsterra' && config.isProduction && (
+        <AdsterraAd 
+          type="popup"
+          zoneId="YOUR_ADSTERRA_POPUP_ZONE_ID" // Replace when publishing
+        />
+      )}
+      
+      {/* Interstitial ad overlay */}
+      {showInterstitial && (
+        config.provider === 'adsterra' && config.isProduction ? (
+          // Use Adsterra Interstitial in production
+          <AdsterraAd 
+            type="interstitial"
+            zoneId="YOUR_ADSTERRA_INTERSTITIAL_ZONE_ID" // Replace when publishing
+            onClose={handleInterstitialClose}
+          />
+        ) : (
+          // Use simulated interstitial in development
+          <InterstitialAd onClose={handleInterstitialClose} autoCloseDelay={3000} />
+        )
+      )}
     </div>
   );
 };

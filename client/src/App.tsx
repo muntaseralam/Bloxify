@@ -16,6 +16,7 @@ import NotFound from "@/pages/not-found";
 import Docs from "@/pages/Docs";
 import { useRobloxUser } from "./hooks/useRobloxUser";
 import { useGameProgress } from "./hooks/useGameProgress";
+import { AdProviderProvider } from "./context/AdProviderContext";
 
 function BloxifyApp() {
   const { user, login, logout } = useRobloxUser();
@@ -120,30 +121,32 @@ function BloxifyApp() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-[#F2F2F2] font-['Nunito',sans-serif] bg-gradient-to-br from-[#F2F2F2] to-[#E0E0E0]">
-        <nav className="bg-[#1A1A1A] text-white p-4">
-          <div className="container mx-auto flex justify-between items-center">
-            <div className="font-bold text-xl">
-              <Link href="/">
-                <span className="cursor-pointer">BloxToken</span>
-              </Link>
+      <AdProviderProvider initialConfig={{ provider: 'simulated', isProduction: false }}>
+        <div className="min-h-screen bg-[#F2F2F2] font-['Nunito',sans-serif] bg-gradient-to-br from-[#F2F2F2] to-[#E0E0E0]">
+          <nav className="bg-[#1A1A1A] text-white p-4">
+            <div className="container mx-auto flex justify-between items-center">
+              <div className="font-bold text-xl">
+                <Link href="/">
+                  <span className="cursor-pointer">BloxToken</span>
+                </Link>
+              </div>
+              <div>
+                <Link href="/docs">
+                  <span className="cursor-pointer hover:text-blue-400 transition-colors">
+                    Developer Guide
+                  </span>
+                </Link>
+              </div>
             </div>
-            <div>
-              <Link href="/docs">
-                <span className="cursor-pointer hover:text-blue-400 transition-colors">
-                  Developer Guide
-                </span>
-              </Link>
-            </div>
-          </div>
-        </nav>
-        
-        <Switch>
-          <Route path="/" component={BloxifyApp} />
-          <Route path="/docs" component={Docs} />
-          <Route component={NotFound} />
-        </Switch>
-      </div>
+          </nav>
+          
+          <Switch>
+            <Route path="/" component={BloxifyApp} />
+            <Route path="/docs" component={Docs} />
+            <Route component={NotFound} />
+          </Switch>
+        </div>
+      </AdProviderProvider>
     </QueryClientProvider>
   );
 }

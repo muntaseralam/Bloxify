@@ -7,6 +7,7 @@ interface AdsterraAdProps {
   type: 'interstitial' | 'popup' | 'banner' | 'native';
   zoneId: string; // Your Adsterra zone ID
   onClose?: () => void;
+  className?: string;
 }
 
 /**
@@ -17,7 +18,7 @@ interface AdsterraAdProps {
  * 2. Create ad zones and get your zone IDs
  * 3. Replace YOUR_ZONE_ID with your actual Adsterra zone ID when publishing
  */
-const AdsterraAd: React.FC<AdsterraAdProps> = ({ type, zoneId, onClose }) => {
+const AdsterraAd: React.FC<AdsterraAdProps> = ({ type, zoneId, onClose, className = '' }) => {
   const { config } = useAdProvider();
   const [showAd, setShowAd] = useState(type !== 'popup'); // Interstitials show immediately, popups controlled by Adsterra
   const [adDismissed, setAdDismissed] = useState(false);
@@ -167,7 +168,7 @@ const AdsterraAd: React.FC<AdsterraAdProps> = ({ type, zoneId, onClose }) => {
   return (
     <div 
       id={`adsterra-${type}-${zoneId}`} 
-      className={`adsterra-ad adsterra-${type}`}
+      className={`adsterra-ad adsterra-${type} ${className}`}
       data-atzone={zoneId}
     >
       {/* Adsterra script will populate this element */}

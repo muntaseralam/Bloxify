@@ -1,94 +1,87 @@
 import React, { useEffect, useState } from 'react';
-import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
+import { useAdProvider, SimulatedAdNotice } from '@/context/AdProviderContext';
+import { AD_CONFIG } from '@/lib/adConfig';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 interface InterstitialAdProps {
   onClose: () => void;
   autoCloseDelay?: number; // Auto close delay in milliseconds
 }
 
-const InterstitialAd = ({ onClose, autoCloseDelay = 10000 }: InterstitialAdProps) => {
+const InterstitialAd: React.FC<InterstitialAdProps> = ({ onClose, autoCloseDelay = 10000 }) => {
   const { config } = useAdProvider();
-  const [timeLeft, setTimeLeft] = useState(Math.ceil(autoCloseDelay / 1000));
-  const [isClosed, setIsClosed] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [remainingTime, setRemainingTime] = useState(autoCloseDelay / 1000);
   
-  // Auto close timer
+  // Auto-close countdown timer
   useEffect(() => {
-    if (isClosed) return;
+    // In development mode, reduce the time for better testing
+    const actualDelay = config.isProduction ? autoCloseDelay : Math.min(autoCloseDelay, 5000);
     
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleClose();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min(100, (elapsed / actualDelay) * 100);
+      setProgress(newProgress);
+      
+      const remaining = Math.max(0, Math.ceil((actualDelay - elapsed) / 1000));
+      setRemainingTime(remaining);
+      
+      if (newProgress >= 100) {
+        clearInterval(interval);
+        onClose();
+      }
+    }, 100);
     
-    return () => clearInterval(timer);
-  }, [isClosed]);
+    return () => clearInterval(interval);
+  }, [autoCloseDelay, config.isProduction, onClose]);
   
-  const handleClose = () => {
-    setIsClosed(true);
-    onClose();
-  };
-  
-  if (isClosed) return null;
-  
+  // In real production environment, this would be an Adsterra interstitial
+  // For now, we'll show a simulated ad
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-      <SimulatedAdNotice>
-        <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 overflow-hidden">
-          <div className="bg-gray-800 text-white p-3 flex justify-between items-center">
-            <h3 className="font-bold">Special Offer</h3>
-            <div className="text-sm">
-              Close in <span className="font-bold">{timeLeft}s</span>
+    <SimulatedAdNotice>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+        <div className="bg-white rounded-lg overflow-hidden max-w-md w-full mx-4">
+          <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
+            <h3 className="text-lg font-bold">Full-Screen Advertisement</h3>
+            {remainingTime === 0 && (
               <button 
-                onClick={handleClose}
-                className="ml-4 bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-xs"
+                onClick={onClose}
+                className="text-white hover:text-gray-200"
               >
-                Skip Ad
+                ✕
               </button>
-            </div>
+            )}
           </div>
           
           <div className="p-6">
             <div className="mb-6 text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-4">Limited Time Discount!</div>
-              <div className="bg-blue-50 rounded-lg p-6 flex justify-center items-center">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-blue-500 mb-2">50% OFF</div>
-                  <div className="text-gray-600">Premium Game Access</div>
-                  <div className="mt-4 text-gray-500">
-                    <span className="line-through">$9.99</span>
-                    <span className="text-2xl text-blue-600 font-bold ml-2">$4.99</span>
-                  </div>
+              <div className="w-full h-60 bg-gradient-to-br from-blue-100 to-blue-300 rounded flex items-center justify-center mb-4">
+                <div className="text-blue-800 text-center">
+                  <div className="text-4xl mb-2">🏆</div>
+                  <p className="font-bold">Ad Content Would Appear Here</p>
+                  <p className="text-sm mt-2">In production, this would be a real advertisement</p>
                 </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-full font-bold transition-colors"
-              >
-                Claim Offer
-              </button>
-              <button 
-                onClick={handleClose}
-                className="border border-gray-300 hover:bg-gray-100 text-gray-700 py-3 px-6 rounded-full transition-colors"
-              >
-                No Thanks
-              </button>
-            </div>
-            
-            <div className="mt-6 text-xs text-gray-500 text-center">
-              *This is a simulated ad for demonstration purposes
+              
+              <div className="mb-4">
+                <Progress value={progress} className="h-2" />
+                <p className="text-xs text-gray-500 mt-1">
+                  {remainingTime > 0 ? `Ad will close in ${remainingTime} seconds...` : 'You can close this ad now'}
+                </p>
+              </div>
+              
+              {remainingTime === 0 && (
+                <Button onClick={onClose} className="bg-blue-600 text-white">
+                  Continue to Content
+                </Button>
+              )}
             </div>
           </div>
         </div>
-      </SimulatedAdNotice>
-    </div>
+      </div>
+    </SimulatedAdNotice>
   );
 };
 
