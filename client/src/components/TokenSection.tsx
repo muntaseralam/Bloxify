@@ -181,14 +181,22 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                   <Button 
                     className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
                     onClick={() => {
-                      toast({
-                        title: "Daily Quest Limit",
-                        description: "You've completed all your quests for today. Come back tomorrow for more!",
-                      });
+                      if (dailyQuestCount >= 5) {
+                        toast({
+                          title: "Daily Quest Limit",
+                          description: "You've completed all your quests for today. Come back tomorrow for more!",
+                        });
+                      } else if (!onStartNewQuest) {
+                        toast({
+                          title: "Quest Unavailable",
+                          description: "Unable to start a new quest. Please try logging out and back in.",
+                          variant: "destructive"
+                        });
+                      }
                     }}
                   >
                     <i className="fas fa-redo-alt mr-2"></i> 
-                    Return Tomorrow
+                    {dailyQuestCount >= 5 ? "Return Tomorrow" : "Refresh Page"}
                   </Button>
                 )}
               </div>

@@ -13,13 +13,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
       
-      // Check if user already exists
+      // Check if user already exists (case-insensitive match)
       const existingUser = await storage.getUserByUsername(userData.username);
       if (existingUser) {
-        return res.json(existingUser);
+        // Reset quest state when user logs in
+        // This handles both daily quest resets and ensures users can start a new quest session
+        const canCompleteToday = await storage.canUserCompleteQuestToday(userData.username);
+        
+        // Check daily quest count with null safety
+        const dailyQuestCount = existingUser.dailyQuestCount ?? 0;
+        
+        // If user has already completed their quests for today, just return the existing user
+        if (!canCompleteToday && dailyQuestCount >= 5) {
+          return res.json(existingUser);
+        }
+        
+        // Otherwise, allow them to start fresh quests with game state reset
+        const updatedUser = await storage.updateUser(userData.username, {
+          gameCompleted: false,
+          adsWatched: 0
+        });
+        
+        return res.json(updatedUser || existingUser);
       }
       
-      // Create new user
+      // Create new user if none exists
       const newUser = await storage.createUser(userData);
       res.status(201).json(newUser);
     } catch (error) {

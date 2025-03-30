@@ -129,6 +129,26 @@ export function useGameProgress(username: string | undefined) {
     if (!username) return;
 
     try {
+      // First, fetch the updated user data to ensure we have the latest token count
+      const userResponse = await fetch(`/api/users/${username}`);
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch latest user data");
+      }
+      
+      const userData = await userResponse.json();
+      setTokenCount(userData.tokenCount || 0);
+      
+      // Only proceed if user has enough tokens
+      if ((userData.tokenCount || 0) < 10) {
+        toast({
+          title: "Not Enough Tokens",
+          description: `You need at least 10 tokens to generate a code. You currently have ${userData.tokenCount || 0}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Now try to generate the token
       const response = await apiRequest("POST", `/api/users/${username}/token`, {});
       
       if (!response.ok) {
