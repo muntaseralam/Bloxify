@@ -1,5 +1,6 @@
-import React from 'react';
-import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
+import React, { useEffect, useRef } from 'react';
+import { useAdProvider, SimulatedAdNotice } from '@/context/AdProviderContext';
+import { AD_CONFIG } from '@/lib/adConfig';
 
 interface EzoicAdProps {
   id: number;
@@ -16,54 +17,65 @@ interface EzoicAdProps {
  * 3. When publishing, add the Ezoic integration script to your index.html
  * 4. Each ad placeholder needs a unique ID that corresponds to your Ezoic dashboard
  */
-const EzoicAd = ({ id, className = '', style = {} }: EzoicAdProps) => {
+const EzoicAd: React.FC<EzoicAdProps> = ({ id, className = '', style = {} }) => {
   const { config } = useAdProvider();
+  const adRef = useRef<HTMLDivElement>(null);
   
-  // Default styles
-  const defaultStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '250px',
-    width: '100%',
-    overflow: 'hidden',
-  };
+  // Initialize the Ezoic ad when in production mode
+  useEffect(() => {
+    if (config.isProduction && AD_CONFIG.enabled && AD_CONFIG.ezoicSiteId && adRef.current) {
+      // In a real implementation, Ezoic would automatically detect and fill
+      // elements with the 'ezoic-ad' class and 'data-ezoic-ad' attribute
+      
+      // You would need to add the Ezoic initialization script to your index.html
+      // and follow their integration guides
+      
+      // This is just a placeholder for the real implementation
+    }
+  }, [config.isProduction, id]);
   
-  // Combine default styles with custom styles
-  const combinedStyle = { ...defaultStyle, ...style };
-  
-  // In production, render the actual Ezoic ad
-  if (config.isProduction && config.ezoicSiteId) {
+  // Simulated ad in development mode
+  if (!config.isProduction || !AD_CONFIG.enabled || !AD_CONFIG.ezoicSiteId) {
     return (
-      <div 
-        id={`ezoic-pub-ad-placeholder-${id}`} 
-        className={`ezoic-ad ${className}`}
-        style={combinedStyle}
-      />
-    );
-  }
-  
-  // In development, show simulated ad with a different style than AdSense
-  return (
-    <div className={`ezoic-ad-container ${className}`} style={combinedStyle}>
       <SimulatedAdNotice>
-        <div className="simulated-ezoic p-4 text-center bg-blue-50 border border-blue-200 rounded" 
-             style={{ width: '100%', minHeight: '250px' }}>
-          <div className="flex flex-col items-center justify-center h-full">
-            <span className="text-xs font-bold text-blue-500 uppercase">Ezoic Ad #{id}</span>
-            <div className="mt-2 w-full">
-              <div className="bg-blue-100 h-24 rounded w-full flex items-center justify-center">
-                <div className="text-blue-400 text-sm">Premium AI-Optimized Content</div>
-              </div>
-              <div className="mt-2 flex justify-between">
-                <div className="bg-blue-100 h-10 rounded w-1/3 mr-1"></div>
-                <div className="bg-blue-100 h-10 rounded w-2/3"></div>
-              </div>
-            </div>
+        <div
+          className={`ezoic-ad ${className}`}
+          style={{
+            padding: '15px',
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            border: '1px solid #ddd',
+            borderRadius: '5px',
+            minHeight: '100px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            ...style
+          }}
+        >
+          <div>
+            <p className="text-sm font-bold">Ezoic AI-Optimized Ad</p>
+            <p className="text-xs">Ad ID: {id}</p>
+            <p className="text-xs mt-2">Ezoic uses AI to optimize ad placements</p>
           </div>
         </div>
       </SimulatedAdNotice>
-    </div>
+    );
+  }
+  
+  // Real Ezoic ad container in production
+  return (
+    <div
+      ref={adRef}
+      id={`ezoic-pub-ad-placeholder-${id}`}
+      className={`ezoic-ad ${className}`}
+      data-ezoic-ad={id.toString()}
+      style={{
+        minHeight: '100px',
+        width: '100%',
+        ...style
+      }}
+    />
   );
 };
 

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
+import { useAdProvider, SimulatedAdNotice } from '@/context/AdProviderContext';
+import { AD_CONFIG } from '@/lib/adConfig';
+import { Button } from '@/components/ui/button';
 
 interface AdsterraAdProps {
   type: 'interstitial' | 'popup' | 'banner' | 'native';
@@ -15,137 +17,162 @@ interface AdsterraAdProps {
  * 2. Create ad zones and get your zone IDs
  * 3. Replace YOUR_ZONE_ID with your actual Adsterra zone ID when publishing
  */
-const AdsterraAd = ({ type, zoneId, onClose }: AdsterraAdProps) => {
+const AdsterraAd: React.FC<AdsterraAdProps> = ({ type, zoneId, onClose }) => {
   const { config } = useAdProvider();
-  const [visible, setVisible] = useState(true);
+  const [showAd, setShowAd] = useState(type !== 'popup'); // Interstitials show immediately, popups controlled by Adsterra
+  const [adDismissed, setAdDismissed] = useState(false);
   
-  // For interstitial and popup ads, we need to track visibility
+  // For development, we'll auto-close interstitials after some time
   useEffect(() => {
-    if (type === 'interstitial' || type === 'popup') {
-      // In production mode, we'd handle this differently with actual Adsterra scripts
-      if (config.isProduction) {
-        // Adsterra scripts would handle ad display and closing
-        // This is just a placeholder to ensure we call onClose() in production too
-        
-        // Usually Adsterra provides a callback for when ads are closed
-        // Here we're simulating that with a timeout
-        const timer = setTimeout(() => {
-          if (onClose) onClose();
-        }, 15000); // 15s timeout as fallback
-        
-        return () => clearTimeout(timer);
-      } else {
-        // In development mode, we'll show our simulated ad for a few seconds
-        const timer = setTimeout(() => {
-          setVisible(false);
-          if (onClose) onClose();
-        }, type === 'interstitial' ? 5000 : 3000);
-        
-        return () => clearTimeout(timer);
-      }
+    if (!config.isProduction && type === 'interstitial' && showAd && !adDismissed) {
+      const timeout = setTimeout(() => {
+        handleClose();
+      }, 5000); // Auto close after 5 seconds in development
+      
+      return () => clearTimeout(timeout);
     }
-  }, [type, config.isProduction, onClose]);
+  }, [config.isProduction, type, showAd, adDismissed]);
   
-  // Handle manual close for simulated ads
+  // In production, this would load the Adsterra script
+  useEffect(() => {
+    if (config.isProduction && AD_CONFIG.enabled && zoneId) {
+      // In real implementation, Adsterra provides custom scripts for each ad unit
+      // You would typically add these scripts to the page when needed
+      
+      // For popup ads, Adsterra script handles when to show them
+      // For interstitial ads, we need to show them ourselves when triggered
+      
+      // This is just a placeholder for the actual implementation
+      console.log(`Loading Adsterra ${type} ad with zone ID ${zoneId}`);
+      
+      // Cleanup function
+      return () => {
+        // Remove any Adsterra scripts or elements when component unmounts
+      };
+    }
+  }, [config.isProduction, type, zoneId]);
+  
   const handleClose = () => {
-    setVisible(false);
+    setAdDismissed(true);
+    setShowAd(false);
     if (onClose) onClose();
   };
   
-  // In production, we inject Adsterra's provided script for the specific zone
-  if (config.isProduction && config.adsterraAccountId) {
-    if (type === 'banner') {
-      return (
-        <div 
-          id={`atbanner-${zoneId}`} 
-          className="adsterra-banner"
-          style={{ width: '100%', minHeight: '90px', textAlign: 'center' }}
-        ></div>
-      );
-    }
-    
-    // For interstitial and popup ads, Adsterra typically provides specific script
-    // that needs to be inserted. The actual implementation depends on Adsterra's
-    // current implementation which may change.
-    return null; // Adsterra scripts typically inject their own containers
+  // Don't render anything for popups in production (handled by Adsterra script)
+  if (config.isProduction && type === 'popup') {
+    return null;
   }
   
-  // In development, show simulated ads
-  if (!visible) return null;
+  // Don't render anything if ad is dismissed or not showing
+  if (adDismissed || !showAd) {
+    return null;
+  }
   
-  // Different styles based on ad type
-  switch (type) {
-    case 'interstitial':
+  // Simulated ad in development mode or missing credentials
+  if (!config.isProduction || !AD_CONFIG.enabled) {
+    if (type === 'interstitial') {
       return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-          <SimulatedAdNotice>
-            <div className="relative bg-white p-6 rounded-lg max-w-lg w-full">
+        <SimulatedAdNotice>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+            <div className="bg-white rounded-lg overflow-hidden max-w-lg w-full mx-4">
+              <div className="p-4 bg-purple-600 text-white flex justify-between items-center">
+                <h3 className="text-lg font-bold">Adsterra {type.charAt(0).toUpperCase() + type.slice(1)} Ad</h3>
+                <button 
+                  onClick={handleClose}
+                  className="text-white hover:text-gray-200"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <div className="mb-6 text-center">
+                  <div className="w-full h-60 bg-gradient-to-br from-purple-100 to-purple-300 rounded flex items-center justify-center mb-4">
+                    <div className="text-purple-800 text-center">
+                      <div className="text-4xl mb-2">🎯</div>
+                      <p className="font-bold">Sponsored Content</p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4">
+                    This is a simulated Adsterra {type} ad. In production, this would be replaced with a real advertisement.
+                  </p>
+                  
+                  <Button onClick={handleClose} className="bg-purple-600 text-white">
+                    Continue to Content
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </SimulatedAdNotice>
+      );
+    } else if (type === 'popup') {
+      // For popup simulation in dev mode, we'll show a simplified version
+      return (
+        <SimulatedAdNotice>
+          <div className="fixed bottom-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+            <div className="p-3 bg-purple-600 text-white flex justify-between items-center">
+              <h3 className="text-sm font-bold">Adsterra Popup</h3>
               <button 
                 onClick={handleClose}
-                className="absolute top-2 right-2 bg-gray-200 rounded-full w-6 h-6 flex items-center justify-center"
+                className="text-white hover:text-gray-200"
               >
                 ✕
               </button>
-              <div className="text-center mb-4">
-                <span className="text-xs font-bold text-red-500 uppercase">Adsterra Interstitial Ad</span>
-              </div>
-              <div className="bg-red-50 border border-red-200 rounded p-4 text-center min-h-[300px] flex flex-col items-center justify-center">
-                <div className="text-xl font-bold text-red-800 mb-2">Special Offer!</div>
-                <div className="w-full h-40 bg-red-100 rounded flex items-center justify-center">
-                  <span className="text-red-500">Advertisement Content</span>
-                </div>
-                <button 
-                  className="mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
+            </div>
+            <div className="p-4">
+              <p className="text-sm">This is a simulated Adsterra popup ad.</p>
+              <div className="mt-2 flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
                   onClick={handleClose}
+                  className="text-xs"
                 >
-                  Close Ad
-                </button>
+                  Close
+                </Button>
               </div>
             </div>
-          </SimulatedAdNotice>
-        </div>
+          </div>
+        </SimulatedAdNotice>
       );
-      
-    case 'popup':
+    } else if (type === 'banner') {
       return (
-        <div className="fixed bottom-4 right-4 z-40 max-w-sm w-full shadow-lg">
-          <SimulatedAdNotice>
-            <div className="bg-white rounded-lg overflow-hidden">
-              <div className="flex justify-between items-center bg-red-500 text-white p-2">
-                <span className="text-xs font-bold">Adsterra Popup</span>
-                <button onClick={handleClose} className="text-white">✕</button>
-              </div>
-              <div className="p-4 bg-red-50">
-                <div className="w-full h-40 bg-red-100 rounded flex items-center justify-center">
-                  <span className="text-red-500">Popup Ad Content</span>
-                </div>
-                <button 
-                  className="mt-4 bg-red-500 hover:bg-red-600 text-white w-full font-bold py-2 rounded"
-                  onClick={handleClose}
-                >
-                  Learn More
-                </button>
-              </div>
+        <SimulatedAdNotice>
+          <div 
+            className="w-full bg-gradient-to-r from-purple-100 to-purple-300 rounded p-4 flex items-center justify-center"
+            style={{ height: '120px' }}
+          >
+            <div className="text-center">
+              <p className="font-bold text-purple-800">Adsterra Banner Ad</p>
+              <p className="text-xs text-purple-600 mt-1">Zone ID: {zoneId}</p>
             </div>
-          </SimulatedAdNotice>
-        </div>
+          </div>
+        </SimulatedAdNotice>
       );
-      
-    case 'banner':
-    default:
+    } else {
       return (
-        <div className="w-full">
-          <SimulatedAdNotice>
-            <div className="bg-red-50 border border-red-200 p-2 rounded text-center" style={{ minHeight: '90px' }}>
-              <span className="text-xs font-bold text-red-500 uppercase">Adsterra Banner</span>
-              <div className="mt-1 w-full h-10 bg-red-100 rounded flex items-center justify-center">
-                <span className="text-red-500 text-sm">Banner Ad Content</span>
-              </div>
-            </div>
-          </SimulatedAdNotice>
-        </div>
+        <SimulatedAdNotice>
+          <div className="bg-purple-100 border-2 border-purple-200 p-4 rounded-lg">
+            <p className="font-bold text-purple-800 mb-1">Adsterra Native Ad</p>
+            <p className="text-sm text-purple-600">Native ad content would appear here...</p>
+          </div>
+        </SimulatedAdNotice>
       );
+    }
   }
+  
+  // Real ad in production - this div would be filled by Adsterra's script
+  return (
+    <div 
+      id={`adsterra-${type}-${zoneId}`} 
+      className={`adsterra-ad adsterra-${type}`}
+      data-atzone={zoneId}
+    >
+      {/* Adsterra script will populate this element */}
+    </div>
+  );
 };
 
 export default AdsterraAd;

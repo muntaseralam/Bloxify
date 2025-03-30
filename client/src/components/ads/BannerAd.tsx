@@ -1,107 +1,81 @@
 import React from 'react';
-import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
+import { useAdProvider } from '@/context/AdProviderContext';
+import GoogleAdSense from './GoogleAdSense';
+import EzoicAd from './EzoicAd';
+import AdsterraAd from './AdsterraAd';
 
 interface BannerAdProps {
   className?: string;
   variant?: "horizontal" | "vertical";
 }
 
-const BannerAd = ({ 
-  className = "", 
-  variant = "horizontal" 
-}: BannerAdProps) => {
+const BannerAd: React.FC<BannerAdProps> = ({
+  className = '',
+  variant = "horizontal"
+}) => {
   const { config } = useAdProvider();
   
-  // Default styles based on variant
-  const containerStyle: React.CSSProperties = {
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    minHeight: variant === 'horizontal' ? '90px' : '250px',
-    maxHeight: variant === 'horizontal' ? '90px' : '600px',
-  };
-  
-  // For production implementations, you would use your chosen ad network here
-  if (config.isProduction) {
-    // Depending on which ad network is configured, render the appropriate component
-    switch (config.provider) {
-      case 'adsense':
-        // Use Google AdSense in production
-        return (
-          <div className={`banner-ad ${className}`} style={containerStyle}>
-            {/* This would be replaced with actual AdSense code in production */}
-            <div id="adsense-banner" style={containerStyle}></div>
-          </div>
-        );
-        
-      case 'adsterra':
-        // Use Adsterra in production
-        return (
-          <div className={`banner-ad ${className}`} style={containerStyle}>
-            {/* This would be replaced with actual Adsterra code in production */}
-            <div id="adsterra-banner" style={containerStyle}></div>
-          </div>
-        );
-        
-      case 'ezoic':
-        // Use Ezoic in production
-        return (
-          <div className={`banner-ad ${className}`} style={containerStyle}>
-            {/* This would be replaced with actual Ezoic code in production */}
-            <div id="ezoic-pub-ad-placeholder-banner" style={containerStyle}></div>
-          </div>
-        );
-        
-      default:
-        // Fallback to simulated ad
-        return renderSimulatedAd();
+  // Use different ad providers based on configuration
+  // In a real app, you might want to rotate between providers or select based on other factors
+  function renderAd() {
+    if (config.provider === 'adsense') {
+      return (
+        <GoogleAdSense
+          position="bottom"
+          format={variant === "horizontal" ? "horizontal" : "vertical"}
+          className={className}
+        />
+      );
+    } else if (config.provider === 'ezoic') {
+      return (
+        <EzoicAd
+          id={variant === "horizontal" ? 1 : 2} // Unique ID for each ad position
+          className={className}
+        />
+      );
+    } else if (config.provider === 'adsterra') {
+      return (
+        <AdsterraAd
+          type="banner"
+          zoneId="BANNER_ZONE_ID" // Replace with your Adsterra zone ID when publishing
+          className={className}
+        />
+      );
+    } else {
+      // Default to simulated ad in development mode
+      return renderSimulatedAd();
     }
   }
   
-  // In development, show simulated banner ad
-  return renderSimulatedAd();
-  
+  // Simulated banner ad for development
   function renderSimulatedAd() {
+    const isHorizontal = variant === "horizontal";
+    
     return (
-      <div className={`banner-ad ${className}`} style={containerStyle}>
-        <SimulatedAdNotice>
-          <div 
-            className="simulated-banner bg-gray-100 border border-gray-200 rounded p-2 w-full"
-            style={{
-              height: variant === 'horizontal' ? '90px' : '250px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: variant === 'horizontal' ? 'row' : 'column',
-              padding: '0.5rem',
-            }}
-          >
-            <div className="text-xs text-gray-500 font-bold mb-1">
-              {variant === 'horizontal' ? 'BANNER' : 'SKYSCRAPER'} ADVERTISEMENT
-            </div>
-            
-            {variant === 'horizontal' ? (
-              <div className="flex items-center w-full">
-                <div className="w-1/4 bg-gray-200 rounded h-12"></div>
-                <div className="flex-1 pl-2">
-                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full flex-1 flex flex-col items-center justify-center">
-                <div className="w-full h-24 bg-gray-200 rounded mb-2"></div>
-                <div className="w-4/5 h-3 bg-gray-200 rounded mb-2"></div>
-                <div className="w-3/5 h-3 bg-gray-200 rounded mb-2"></div>
-                <div className="w-2/3 h-6 bg-gray-300 rounded mt-2"></div>
-              </div>
-            )}
-          </div>
-        </SimulatedAdNotice>
+      <div 
+        className={`banner-ad ${isHorizontal ? 'banner-horizontal' : 'banner-vertical'} ${className}`}
+        style={{
+          width: '100%',
+          height: isHorizontal ? '90px' : '280px',
+          background: 'linear-gradient(135deg, #f4f9fc 0%, #d2e3f3 100%)',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '10px',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+        }}
+      >
+        <div className="text-center">
+          <p className="text-sm font-bold text-blue-800">Banner Ad</p>
+          <p className="text-xs text-blue-600">{isHorizontal ? '728×90' : '300×600'} Ad Unit</p>
+        </div>
       </div>
     );
   }
+  
+  return renderAd();
 };
 
 export default BannerAd;

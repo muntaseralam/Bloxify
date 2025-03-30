@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { AD_CONFIG, loadAdSenseScript, loadEzoicScript, loadAdsterraScript } from '@/lib/adConfig';
 
+// Types of ad providers supported
 type AdProvider = 'adsense' | 'admob' | 'ezoic' | 'adsterra' | 'simulated';
 
 interface AdConfigType {
@@ -17,186 +19,110 @@ interface AdContextType {
   updateConfig: (newConfig: Partial<AdConfigType>) => void;
 }
 
+// Default configuration - simulated ads for development
 const defaultConfig: AdConfigType = {
-  provider: 'simulated', // Default to simulated ads in development
-  isProduction: false,   // Set to true when publishing
+  provider: 'simulated',
+  isProduction: false
 };
 
+// Create context with default values
 const AdProviderContext = createContext<AdContextType>({
   config: defaultConfig,
   isAdblockDetected: false,
-  updateConfig: () => {},
+  updateConfig: () => {}
 });
 
+// Custom hook to use the ad provider context
 export const useAdProvider = () => useContext(AdProviderContext);
 
+// Provider component
 interface AdProviderProviderProps {
   children: React.ReactNode;
   initialConfig?: Partial<AdConfigType>;
 }
 
 export const AdProviderProvider: React.FC<AdProviderProviderProps> = ({ 
-  children, 
-  initialConfig = {} 
+  children,
+  initialConfig = {}
 }) => {
   const [config, setConfig] = useState<AdConfigType>({
     ...defaultConfig,
-    ...initialConfig,
+    ...initialConfig
   });
+  
   const [isAdblockDetected, setIsAdblockDetected] = useState(false);
   
-  // Update config
+  // Function to update config
   const updateConfig = (newConfig: Partial<AdConfigType>) => {
     setConfig(prevConfig => ({
       ...prevConfig,
-      ...newConfig,
+      ...newConfig
     }));
   };
   
-  // Check for adblocker on component mount
+  // Load ad scripts when in production mode
   useEffect(() => {
-    const detectAdblock = async () => {
-      try {
-        // Simple adblock detection by trying to load a fake ad script
-        const testAdElement = document.createElement('div');
-        testAdElement.className = 'adsbygoogle';
-        testAdElement.style.position = 'absolute';
-        testAdElement.style.left = '-999px';
-        testAdElement.style.top = '-999px';
-        testAdElement.style.height = '1px';
-        testAdElement.style.width = '1px';
-        document.body.appendChild(testAdElement);
-        
-        // Wait a short time to allow adblockers to act
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Check if the element has been hidden or removed by adblocker
-        const adblockDetected = testAdElement.offsetHeight === 0 || 
-                               !document.body.contains(testAdElement);
-        
-        // Clean up test element
-        if (document.body.contains(testAdElement)) {
-          document.body.removeChild(testAdElement);
-        }
-        
-        setIsAdblockDetected(adblockDetected);
-        
-        if (adblockDetected && config.isProduction) {
-          console.warn('Adblock detected: Some features may not work correctly.');
-        }
-      } catch (error) {
-        console.error('Error detecting adblock:', error);
-      }
-    };
-    
-    // Only run detection in production mode or if specifically enabled
     if (config.isProduction) {
-      detectAdblock();
-    }
-  }, [config.isProduction]);
-  
-  // Inject ad scripts based on selected providers when in production
-  useEffect(() => {
-    if (!config.isProduction) return;
-    
-    // Helper to add script to head
-    const addScript = (src: string, id: string, async = true, attributes: Record<string, string> = {}) => {
-      // Avoid adding duplicate scripts
-      if (document.getElementById(id)) return;
-      
-      const script = document.createElement('script');
-      script.id = id;
-      script.src = src;
-      script.async = async;
-      
-      // Add any additional attributes
-      Object.entries(attributes).forEach(([key, value]) => {
-        script.setAttribute(key, value);
-      });
-      
-      document.head.appendChild(script);
-      return script;
-    };
-    
-    // Clean up helper
-    const cleanup: (() => void)[] = [];
-    
-    // Add the appropriate scripts based on config
-    if (config.provider === 'adsense' || config.provider === 'simulated') {
-      if (config.adsenseClientId) {
-        const script = addScript(
-          `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${config.adsenseClientId}`,
-          'google-adsense-script',
-          true,
-          { 'crossorigin': 'anonymous' }
-        );
-        if (script) cleanup.push(() => document.head.removeChild(script));
+      // Load appropriate ad scripts based on provider
+      if (config.provider === 'adsense' || AD_CONFIG.adsensePublisherId) {
+        loadAdSenseScript();
       }
-    }
-    
-    if (config.provider === 'admob' || config.provider === 'simulated') {
-      // Typically AdMob is used in mobile apps via a native SDK
-      // For web, it would be a custom implementation
-      // This is a placeholder for future AdMob web implementation
-    }
-    
-    if (config.provider === 'ezoic' || config.provider === 'simulated') {
-      if (config.ezoicSiteId) {
-        const script = addScript(
-          `//www.ezojs.com/ezoic/sa.min.js?ezuid=${config.ezoicSiteId}`,
-          'ezoic-script'
-        );
-        if (script) cleanup.push(() => document.head.removeChild(script));
+      
+      if (config.provider === 'ezoic' || AD_CONFIG.ezoicSiteId) {
+        loadEzoicScript();
       }
-    }
-    
-    if (config.provider === 'adsterra' || config.provider === 'simulated') {
-      if (config.adsterraAccountId) {
-        // Adsterra typically provides custom script urls for each zone/placement
-        // This is just a placeholder for the account-level script if needed
-        const script = addScript(
-          `//www.adsterra.com/script/${config.adsterraAccountId}.js`,
-          'adsterra-base-script'
-        );
-        if (script) cleanup.push(() => document.head.removeChild(script));
+      
+      if (config.provider === 'adsterra' || AD_CONFIG.adsterraSiteId) {
+        loadAdsterraScript();
       }
+      
+      // AdMob is typically used in mobile apps, not directly loaded in web
+      
+      // Simple adblock detection
+      setTimeout(() => {
+        const adBlockDetected = document.getElementById('ad-block-test');
+        if (!adBlockDetected) {
+          setIsAdblockDetected(true);
+        }
+      }, 1000);
+      
+      // Create a hidden dummy ad element to test for ad blockers
+      const testAd = document.createElement('div');
+      testAd.id = 'ad-block-test';
+      testAd.className = 'ad-unit';
+      testAd.style.display = 'none';
+      document.body.appendChild(testAd);
+      
+      return () => {
+        if (testAd && testAd.parentNode) {
+          testAd.parentNode.removeChild(testAd);
+        }
+      };
     }
-    
-    // Clean up scripts on unmount
-    return () => {
-      cleanup.forEach(fn => fn());
-    };
-  }, [config.provider, config.isProduction, config.adsenseClientId, config.admobAppId, config.ezoicSiteId, config.adsterraAccountId]);
+  }, [config.isProduction, config.provider]);
   
   return (
-    <AdProviderContext.Provider 
-      value={{
-        config,
-        isAdblockDetected,
-        updateConfig,
-      }}
-    >
+    <AdProviderContext.Provider value={{ config, isAdblockDetected, updateConfig }}>
       {children}
     </AdProviderContext.Provider>
   );
 };
 
+// Component to display a notice about simulated ads in development mode
 interface SimulatedAdNoticeProps {
   children?: React.ReactNode;
 }
 
-// Use for simulating ads in development
 export const SimulatedAdNotice: React.FC<SimulatedAdNoticeProps> = ({ children }) => {
   const { config } = useAdProvider();
   
   if (config.isProduction) return <>{children}</>;
   
   return (
-    <div className="simulated-ad-notice bg-yellow-100 text-yellow-800 text-xs p-1 rounded">
-      <p className="font-medium">Simulated Ad (Development Mode)</p>
+    <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-2 mb-2 text-xs">
+      <p className="font-bold">Simulated Ad</p>
+      <p>Real ads will appear here when published.</p>
       {children}
     </div>
   );
 };
-
-export default AdProviderContext;
