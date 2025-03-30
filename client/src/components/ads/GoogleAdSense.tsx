@@ -14,7 +14,7 @@ interface GoogleAdSenseProps {
  * When publishing, replace YOUR_ADSENSE_CLIENT_ID with your actual AdSense Publisher ID
  * and YOUR_ADSENSE_SLOT_ID with your ad slot ID
  */
-export const GoogleAdSense = ({ 
+const GoogleAdSenseComponent = ({ 
   position, 
   className = '', 
   format = 'auto',
@@ -90,4 +90,4 @@ export const GoogleAdSense = ({
   );
 };
 
-export default GoogleAdSense;
+export default GoogleAdSenseComponent;

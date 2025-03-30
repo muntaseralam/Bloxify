@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useAdProvider, SimulatedAdNotice } from '../../context/AdProviderContext';
 
 interface EzoicAdProps {
@@ -18,53 +18,79 @@ interface EzoicAdProps {
  */
 const EzoicAd = ({ id, className = '', style = {} }: EzoicAdProps) => {
   const { config } = useAdProvider();
+  const adRef = useRef<HTMLDivElement>(null);
   
-  // Default styles
-  const defaultStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '250px',
-    width: '100%',
-    overflow: 'hidden',
-  };
+  useEffect(() => {
+    if (!config.isProduction || !adRef.current) return;
+    
+    // In a real implementation with Ezoic, their script would automatically
+    // find the div with the corresponding ID and populate it with an ad
+    // This is typically handled by Ezoic's scripts, not manually in your code
+    
+    // This is a placeholder - when you set up Ezoic properly,
+    // they'll provide specific integration code
+    if (typeof window.ezstandalone !== 'undefined') {
+      // Call Ezoic's display function for this specific placeholder
+      window.ezstandalone.define(id);
+      window.ezstandalone.enable();
+      window.ezstandalone.display();
+    } else {
+      console.warn('Ezoic scripts not loaded properly');
+    }
+  }, [config.isProduction, id]);
   
-  // Combine default styles with custom styles
-  const combinedStyle = { ...defaultStyle, ...style };
-  
-  // In production, render the actual Ezoic ad
-  if (config.isProduction && config.ezoicSiteId) {
+  if (config.isProduction) {
+    // In production, create a div that Ezoic will target
+    // They use an ID format like "ezoic-pub-ad-placeholder-ID"
     return (
-      <div 
-        id={`ezoic-pub-ad-placeholder-${id}`} 
-        className={`ezoic-ad ${className}`}
-        style={combinedStyle}
+      <div
+        ref={adRef}
+        id={`ezoic-pub-ad-placeholder-${id}`}
+        className={className}
+        style={style}
       />
     );
   }
   
-  // In development, show simulated ad with a different style than AdSense
+  // In development, show a simulated ad
   return (
-    <div className={`ezoic-ad-container ${className}`} style={combinedStyle}>
+    <div className={`ezoic-ad ${className}`} style={style}>
       <SimulatedAdNotice>
-        <div className="simulated-ezoic p-4 text-center bg-blue-50 border border-blue-200 rounded" 
-             style={{ width: '100%', minHeight: '250px' }}>
-          <div className="flex flex-col items-center justify-center h-full">
-            <span className="text-xs font-bold text-blue-500 uppercase">Ezoic Ad #{id}</span>
-            <div className="mt-2 w-full">
-              <div className="bg-blue-100 h-24 rounded w-full flex items-center justify-center">
-                <div className="text-blue-400 text-sm">Premium AI-Optimized Content</div>
-              </div>
-              <div className="mt-2 flex justify-between">
-                <div className="bg-blue-100 h-10 rounded w-1/3 mr-1"></div>
-                <div className="bg-blue-100 h-10 rounded w-2/3"></div>
-              </div>
+        <div className="simulated-ezoic-ad p-4 bg-gray-100 rounded border border-gray-300 flex flex-col items-center justify-center">
+          <div className="text-xs font-bold text-gray-500 uppercase mb-2">Ezoic Ad #{id}</div>
+          <div className="w-full flex flex-col gap-2">
+            <div className="flex justify-between w-full">
+              <div className="bg-gray-300 h-3 w-1/4 rounded"></div>
+              <div className="bg-gray-300 h-3 w-1/4 rounded"></div>
             </div>
+            <div className="bg-gray-300 h-12 w-full rounded"></div>
+            <div className="flex justify-around w-full">
+              <div className="bg-gray-300 h-20 w-[30%] rounded"></div>
+              <div className="bg-gray-300 h-20 w-[65%] rounded"></div>
+            </div>
+            <div className="flex justify-between w-full">
+              <div className="bg-gray-300 h-4 w-1/5 rounded"></div>
+              <div className="bg-gray-300 h-4 w-2/5 rounded"></div>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            AI-optimized ad placement by Ezoic
           </div>
         </div>
       </SimulatedAdNotice>
     </div>
   );
 };
+
+// Declare global Ezoic interface
+declare global {
+  interface Window {
+    ezstandalone?: {
+      define: (id: number) => void;
+      enable: () => void;
+      display: () => void;
+    };
+  }
+}
 
 export default EzoicAd;
