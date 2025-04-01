@@ -14,6 +14,7 @@ import TokenSection from "./components/TokenSection";
 import WaitlistSection from "./components/WaitlistSection";
 import NotFound from "@/pages/not-found";
 import Docs from "@/pages/Docs";
+import AdConfig from "@/pages/AdConfig";
 import { useRobloxUser } from "./hooks/useRobloxUser";
 import { useGameProgress } from "./hooks/useGameProgress";
 import { AdProviderProvider } from "./context/AdProviderContext";
@@ -36,8 +37,8 @@ function BloxifyApp() {
   // Handler to start the quest journey
   const startQuest = () => {
     if (!user) return;
-    // Set current step to 1 (minigame)
-    updateGameStatus(1, gameCompleted, adsWatched);
+    // Reset ads watched and set current step to 1 (minigame)
+    updateGameStatus(1, false, 0);
   };
 
   return (
@@ -130,10 +131,15 @@ function App() {
                   <span className="cursor-pointer">BloxToken</span>
                 </Link>
               </div>
-              <div>
+              <div className="flex space-x-4">
                 <Link href="/docs">
                   <span className="cursor-pointer hover:text-blue-400 transition-colors">
                     Developer Guide
+                  </span>
+                </Link>
+                <Link href="/ad-config">
+                  <span className="cursor-pointer hover:text-blue-400 transition-colors">
+                    Ad Config
                   </span>
                 </Link>
               </div>
@@ -143,6 +149,7 @@ function App() {
           <Switch>
             <Route path="/" component={BloxifyApp} />
             <Route path="/docs" component={Docs} />
+            <Route path="/ad-config" component={AdConfig} />
             <Route component={NotFound} />
           </Switch>
         </div>

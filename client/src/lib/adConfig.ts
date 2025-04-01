@@ -1,5 +1,5 @@
 // Ad network configuration for the BloxToken app
-// When publishing, update these values with your actual account information
+// Settings are saved to localStorage via the Ad Config page
 
 export type AdNetworkType = 'adsense' | 'admob' | 'ezoic' | 'adsterra';
 
@@ -19,28 +19,45 @@ interface AdNetworkConfig {
   adsterraPopupZoneId?: string;
 }
 
-// In development mode, this will use simulated ads
-// In production, set this to true and uncomment the relevant IDs
-export const AD_CONFIG: AdNetworkConfig = {
-  enabled: false, // Set to true in production
-  
-  // Google AdSense
-  // adsensePublisherId: 'ca-pub-XXXXXXXXXXXXXXXX',
-  // adsenseBannerTopId: 'XXXXXXXXXX',
-  // adsenseBannerBottomId: 'XXXXXXXXXX',
-  
-  // Google AdMob
-  // admobAppId: 'ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY',
-  // admobRewardedVideoId: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
-  
-  // Ezoic
-  // ezoicSiteId: '123456',
-  
-  // Adsterra
-  // adsterraSiteId: 'XXXXXXXXX',
-  // adsterraInterstitialZoneId: 'XXXXXXXXX',
-  // adsterraPopupZoneId: 'XXXXXXXXX',
+// Default configuration to start with
+const defaultConfig: AdNetworkConfig = {
+  enabled: false
 };
+
+// Function to load config from localStorage
+function loadConfigFromStorage(): AdNetworkConfig {
+  // Only access localStorage in browser environment
+  if (typeof window === 'undefined') return defaultConfig;
+  
+  try {
+    const savedConfig = localStorage.getItem('blox_ad_config');
+    const productionMode = localStorage.getItem('blox_production_mode');
+    
+    if (savedConfig) {
+      const parsedConfig = JSON.parse(savedConfig);
+      return {
+        ...defaultConfig,
+        enabled: productionMode === 'true',
+        adsensePublisherId: parsedConfig.adsensePublisherId || undefined,
+        admobAppId: parsedConfig.admobAppId || undefined,
+        ezoicSiteId: parsedConfig.ezoicSiteId || undefined,
+        adsterraSiteId: parsedConfig.adsterraSiteId || undefined,
+        adsenseBannerTopId: parsedConfig.adsenseBannerTopId || undefined,
+        adsenseBannerBottomId: parsedConfig.adsenseBannerBottomId || undefined,
+        admobRewardedVideoId: parsedConfig.admobRewardedVideoId || undefined,
+        adsterraInterstitialZoneId: parsedConfig.adsterraInterstitialZoneId || undefined,
+        adsterraPopupZoneId: parsedConfig.adsterraPopupZoneId || undefined
+      };
+    }
+  } catch (e) {
+    console.error('Error loading ad configuration from localStorage:', e);
+  }
+  
+  return defaultConfig;
+}
+
+// Export the configuration
+export const AD_CONFIG: AdNetworkConfig = loadConfigFromStorage();
 
 // Function to load AdSense script
 export function loadAdSenseScript() {
