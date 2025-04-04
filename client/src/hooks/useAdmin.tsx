@@ -1,78 +1,39 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState } from "react";
 
-// Define the admin credentials interface
-interface AdminCredentials {
-  username: string;
-  password: string;
-}
-
-// Define the admin authentication context type
-interface AdminAuthContextType {
+interface AdminContextType {
   isAdmin: boolean;
-  login: (credentials: AdminCredentials) => boolean;
+  login: (password: string) => Promise<boolean>;
   logout: () => void;
 }
 
-// Create context with default values
-const AdminAuthContext = createContext<AdminAuthContextType>({
-  isAdmin: false,
-  login: () => false,
-  logout: () => {},
-});
+const AdminContext = createContext<AdminContextType | null>(null);
 
-// Admin credentials (in a real app, this would be verified by an API)
-// This is a simple solution for your needs - in production this should be server-side
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'adminPass123'; // You should change this to a secure password
-
-// Custom hook to use the admin auth context
-export const useAdmin = () => useContext(AdminAuthContext);
-
-// Provider component
-interface AdminAuthProviderProps {
-  children: ReactNode;
-}
-
-export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
+export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check for existing admin session on first load
-  useEffect(() => {
-    // Only access localStorage in browser environment
-    if (typeof window !== 'undefined') {
-      const adminSession = localStorage.getItem('blox_admin_session');
-      if (adminSession === 'true') {
-        setIsAdmin(true);
-      }
-    }
-  }, []);
-
-  // Login function to verify admin credentials
-  const login = (credentials: AdminCredentials): boolean => {
-    if (
-      credentials.username === ADMIN_USERNAME &&
-      credentials.password === ADMIN_PASSWORD
-    ) {
+  const login = async (password: string) => {
+    if (password === "admin123") { // Simple password for demo
       setIsAdmin(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('blox_admin_session', 'true');
-      }
       return true;
     }
     return false;
   };
 
-  // Logout function
   const logout = () => {
     setIsAdmin(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('blox_admin_session');
-    }
   };
 
   return (
-    <AdminAuthContext.Provider value={{ isAdmin, login, logout }}>
+    <AdminContext.Provider value={{ isAdmin, login, logout }}>
       {children}
-    </AdminAuthContext.Provider>
+    </AdminContext.Provider>
   );
-};
+}
+
+export function useAdmin() {
+  const context = useContext(AdminContext);
+  if (!context) {
+    throw new Error("useAdmin must be used within an AdminAuthProvider");
+  }
+  return context;
+}

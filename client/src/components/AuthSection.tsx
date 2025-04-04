@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast"; // Assuming a toast component exists
 
 interface AuthSectionProps {
   isLoggedIn: boolean;
   username: string;
-  onLogin: (username: string) => void;
+  onLogin: (username: string, password: string, isNewUser: boolean) => Promise<void>; // Added password and Promise
   onLogout: () => void;
 }
 
@@ -14,9 +15,25 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
   const [inputPassword, setInputPassword] = useState("");
   const [isNewUser, setIsNewUser] = useState(false);
 
-  const handleLogin = () => {
-    if (inputUsername.trim() && inputPassword.trim()) {
-      onLogin(inputUsername.trim(), inputPassword.trim(), isNewUser);
+  const handleLogin = async () => {
+    if (!inputUsername.trim() || !inputPassword.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter both username and password",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (onLogin) {
+      try {
+        await onLogin(inputUsername.trim(), inputPassword.trim(), isNewUser);
+      } catch (error) {
+        toast({
+          title: "Login Failed",
+          description: "Please check your username and password",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -25,7 +42,7 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
       <h2 className="text-2xl font-bold mb-4 text-[#1A1A1A]">
         <i className="fas fa-user-astronaut mr-2"></i> Player Login
       </h2>
-      
+
       {/* Login Form - Shows when not logged in */}
       {!isLoggedIn && (
         <div className="bg-white rounded-lg p-6 shadow-md">
@@ -65,7 +82,7 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
           </div>
         </div>
       )}
-      
+
       {/* User info - Shows when logged in */}
       {isLoggedIn && (
         <div className="bg-white rounded-lg p-6 shadow-md">
