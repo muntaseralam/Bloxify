@@ -11,10 +11,12 @@ interface AuthSectionProps {
 
 const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionProps) => {
   const [inputUsername, setInputUsername] = useState("");
+  const [inputPassword, setInputPassword] = useState("");
+  const [isNewUser, setIsNewUser] = useState(false);
 
   const handleLogin = () => {
-    if (inputUsername.trim()) {
-      onLogin(inputUsername.trim());
+    if (inputUsername.trim() && inputPassword) {
+      onLogin(inputUsername.trim(), inputPassword, isNewUser);
     }
   };
 
@@ -28,7 +30,7 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
       {!isLoggedIn && (
         <div className="bg-white rounded-lg p-6 shadow-md">
           <p className="mb-4 text-lg">Enter your Roblox username to begin your adventure!</p>
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex flex-col gap-3">
             <Input
               type="text"
               value={inputUsername}
@@ -36,12 +38,30 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
               placeholder="Your Roblox Username"
               className="flex-grow px-4 py-3 rounded-lg border-4 border-[#1A1A1A] focus:border-[#00A2FF] focus:outline-none text-lg"
             />
-            <Button
-              onClick={handleLogin}
-              className="game-button bg-[#00A2FF] text-white font-bold py-3 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 text-lg transition-all hover:-translate-y-1"
-            >
-              Start Quest
-            </Button>
+            <Input
+              type="password"
+              value={inputPassword}
+              onChange={(e) => setInputPassword(e.target.value)}
+              placeholder="Enter Password"
+              className="flex-grow px-4 py-3 rounded-lg border-4 border-[#1A1A1A] focus:border-[#00A2FF] focus:outline-none text-lg"
+            />
+            <div className="flex justify-between items-center">
+              <label className="text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={isNewUser}
+                  onChange={(e) => setIsNewUser(e.target.checked)}
+                  className="mr-2"
+                />
+                I'm a new user
+              </label>
+              <Button
+                onClick={handleLogin}
+                className="game-button bg-[#00A2FF] text-white font-bold py-3 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 text-lg transition-all hover:-translate-y-1"
+              >
+                {isNewUser ? "Sign Up" : "Login"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

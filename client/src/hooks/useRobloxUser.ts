@@ -14,7 +14,7 @@ export function useRobloxUser() {
   const [user, setUser] = useState<RobloxUser | null>(null);
   const { toast } = useToast();
 
-  const login = useCallback(async (username: string) => {
+  const login = useCallback(async (username: string, password: string, isNewUser: boolean) => {
     if (!username || username.trim() === "") {
       toast({
         title: "Invalid username",
@@ -25,18 +25,18 @@ export function useRobloxUser() {
     }
 
     try {
-      // First, check if the user already exists
-      const checkResponse = await fetch(`/api/users/${username}`);
-      
-      let userData;
-      if (checkResponse.ok) {
-        userData = await checkResponse.json();
-      } else if (checkResponse.status === 404) {
-        // User doesn't exist, create a new one
-        const createResponse = await apiRequest("POST", "/api/users", { username });
+      if (isNewUser) {
+        const createResponse = await apiRequest("POST", "/api/users", { username, password });
+        if (!createResponse.ok) {
+          throw new Error("Username already taken");
+        }
         userData = await createResponse.json();
       } else {
-        throw new Error("Failed to check user");
+        const loginResponse = await apiRequest("POST", "/api/users/login", { username, password });
+        if (!loginResponse.ok) {
+          throw new Error("Invalid username or password");
+        }
+        userData = await loginResponse.json();
       }
 
       setUser(userData);

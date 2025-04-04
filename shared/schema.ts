@@ -5,6 +5,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  password: text("password").notNull(),
   gameCompleted: boolean("game_completed").default(false).notNull(),
   adsWatched: integer("ads_watched").default(0).notNull(),
   tokenCount: integer("token_count").default(0).notNull(),
