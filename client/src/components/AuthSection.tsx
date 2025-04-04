@@ -15,8 +15,8 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
   const [isNewUser, setIsNewUser] = useState(false);
 
   const handleLogin = () => {
-    if (inputUsername.trim() && inputPassword) {
-      onLogin(inputUsername.trim(), inputPassword, isNewUser);
+    if (inputUsername.trim() && inputPassword.trim()) {
+      onLogin(inputUsername.trim(), inputPassword.trim(), isNewUser);
     }
   };
 
