@@ -29,7 +29,7 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
       {/* Login Form - Shows when not logged in */}
       {!isLoggedIn && (
         <div className="bg-white rounded-lg p-6 shadow-md">
-          <p className="mb-4 text-lg">Enter your Roblox username to begin your adventure!</p>
+          <p className="mb-4 text-lg">Choose any username to begin your adventure!</p>
           <div className="flex flex-col gap-3">
             <Input
               type="text"
