@@ -1,3 +1,4 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -6,9 +7,6 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API Routes - all prefixed with /api
-  
-  // User login/registration
   app.post("/api/users", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
@@ -28,10 +26,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(500).json({ message: "Failed to create user" });
     }
-});
+  });
 
-// Login endpoint
-app.post("/api/users/login", async (req, res) => {
+  // Login endpoint
+  app.post("/api/users/login", async (req, res) => {
     try {
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
@@ -39,41 +37,34 @@ app.post("/api/users/login", async (req, res) => {
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
-      
+
       // Reset quest state when user logs in
-        // This handles both daily quest resets and ensures users can start a new quest session
-        const canCompleteToday = await storage.canUserCompleteQuestToday(userData.username);
-        
+      const canCompleteToday = await storage.canUserCompleteQuestToday(username);
+      
+      if (user) {
         // Check daily quest count with null safety
-        const dailyQuestCount = existingUser.dailyQuestCount ?? 0;
+        const dailyQuestCount = user.dailyQuestCount ?? 0;
         
         // If user has already completed their quests for today, just return the existing user
         if (!canCompleteToday && dailyQuestCount >= 5) {
-          return res.json(existingUser);
+          return res.json(user);
         }
         
         // Otherwise, allow them to start fresh quests with game state reset
-        const updatedUser = await storage.updateUser(userData.username, {
+        const updatedUser = await storage.updateUser(username, {
           gameCompleted: false,
           adsWatched: 0
         });
         
-        return res.json(updatedUser || existingUser);
+        return res.json(updatedUser || user);
       }
       
-      // Create new user if none exists
-      const newUser = await storage.createUser(userData);
-      res.status(201).json(newUser);
+      res.status(404).json({ message: "User not found" });
     } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: fromZodError(error).message 
-        });
-      }
-      res.status(500).json({ message: "Failed to create user" });
+      res.status(500).json({ message: "Failed to login" });
     }
   });
-  
+
   // Get user by username
   app.get("/api/users/:username", async (req, res) => {
     try {
@@ -103,7 +94,6 @@ app.post("/api/users/login", async (req, res) => {
       }
       
       // Check if user has completed the quest requirements for a new token
-      // Token is awarded when user completes all ad views (needs both game completion and ad views)
       if (user.gameCompleted && 
           updateData.adsWatched !== undefined && 
           updateData.adsWatched >= 15 && 
@@ -134,18 +124,15 @@ app.post("/api/users/login", async (req, res) => {
       }
       
       const updatedUser = await storage.updateUser(username, updateData);
-      
       res.json(updatedUser);
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: fromZodError(error).message 
-        });
+        return res.status(400).json({ message: fromZodError(error).message });
       }
       res.status(500).json({ message: "Failed to update user" });
     }
   });
-  
+
   // Generate token for user when they redeem their accumulated tokens
   app.post("/api/users/:username/token", async (req, res) => {
     try {
@@ -187,13 +174,12 @@ app.post("/api/users/login", async (req, res) => {
         message: "Successfully generated redemption code for 10 tokens.",
         remainingTokens: (user.tokenCount || 0) - 10
       });
-      
     } catch (error) {
       console.error("Token generation error:", error);
       res.status(500).json({ message: "Failed to generate token" });
     }
   });
-  
+
   // Verify token (for Roblox game integration)
   app.post("/api/verify-token", async (req, res) => {
     try {
