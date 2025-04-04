@@ -22,8 +22,8 @@ const AdminAuthContext = createContext<AdminAuthContextType>({
 
 // Admin credentials (in a real app, this would be verified by an API)
 // This is a simple solution for your needs - in production this should be server-side
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'adminPass123'; // You should change this to a secure password
+const ADMIN_USERNAME = 'bloxify2025';
+const ADMIN_PASSWORD = 'Gamewebsite@2025'; // You should change this to a secure password
 
 // Custom hook to use the admin auth context
 export const useAdmin = () => useContext(AdminAuthContext);
