@@ -31,11 +31,13 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
     const username = insertUser.username;
+    const password = insertUser.password;
     
     // Create a new user object
     const user: User = {
       id,
       username,
+      password,
       gameCompleted: false,
       adsWatched: 0,
       tokenCount: 0,
