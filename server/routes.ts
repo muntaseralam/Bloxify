@@ -16,7 +16,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user already exists (case-insensitive match)
       const existingUser = await storage.getUserByUsername(userData.username);
       if (existingUser) {
-        // Reset quest state when user logs in
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      
+      // Create new user with password
+      const newUser = await storage.createUser(userData);
+      res.status(201).json(newUser);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      res.status(500).json({ message: "Failed to create user" });
+    }
+});
+
+// Login endpoint
+app.post("/api/users/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Reset quest state when user logs in
         // This handles both daily quest resets and ensures users can start a new quest session
         const canCompleteToday = await storage.canUserCompleteQuestToday(userData.username);
         
