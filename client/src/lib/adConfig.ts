@@ -17,6 +17,7 @@ interface AdNetworkConfig {
   admobRewardedVideoId?: string;
   adsterraInterstitialZoneId?: string;
   adsterraPopupZoneId?: string;
+  adsterraRewardedVideoZoneId?: string;
 }
 
 // Default configuration to start with

@@ -285,6 +285,17 @@ export default function AdConfig() {
                     onChange={handleInputChange}
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="adsterraRewardedVideoZoneId">Rewarded Video Zone ID</Label>
+                  <Input 
+                    id="adsterraRewardedVideoZoneId"
+                    name="adsterraRewardedVideoZoneId"
+                    placeholder="XXXXXXXXX"
+                    value={formData.adsterraRewardedVideoZoneId}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
