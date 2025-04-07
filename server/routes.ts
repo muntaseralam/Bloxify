@@ -1,6 +1,6 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, StatisticsResult } from "./storage";
 import { insertUserSchema, updateUserSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -234,6 +234,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         message: "Failed to verify token" 
       });
+    }
+  });
+
+  // Admin Statistics API Endpoints
+  
+  // Get statistics for today
+  app.get("/api/admin/statistics/today", async (req, res) => {
+    try {
+      const stats = await storage.getStatisticsForToday();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching today's statistics:", error);
+      res.status(500).json({ message: "Failed to fetch statistics for today" });
+    }
+  });
+
+  // Get statistics for a specific date
+  app.get("/api/admin/statistics/date/:date", async (req, res) => {
+    try {
+      const dateStr = req.params.date;
+      const date = new Date(dateStr);
+      
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      const stats = await storage.getStatisticsForDate(date);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics for specific date:", error);
+      res.status(500).json({ message: "Failed to fetch statistics for the specified date" });
+    }
+  });
+
+  // Get statistics for a specific month
+  app.get("/api/admin/statistics/month/:year/:month", async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month) - 1; // Adjust for 0-based months in JavaScript
+      
+      if (isNaN(year) || isNaN(month) || month < 0 || month > 11) {
+        return res.status(400).json({ message: "Invalid year or month format. Month should be 1-12" });
+      }
+      
+      const stats = await storage.getStatisticsForMonth(year, month);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics for specific month:", error);
+      res.status(500).json({ message: "Failed to fetch statistics for the specified month" });
+    }
+  });
+
+  // Get statistics for a specific year
+  app.get("/api/admin/statistics/year/:year", async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      
+      if (isNaN(year)) {
+        return res.status(400).json({ message: "Invalid year format" });
+      }
+      
+      const stats = await storage.getStatisticsForYear(year);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics for specific year:", error);
+      res.status(500).json({ message: "Failed to fetch statistics for the specified year" });
     }
   });
 

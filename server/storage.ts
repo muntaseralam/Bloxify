@@ -1,5 +1,11 @@
 import { users, type User, type InsertUser, type UpdateUser } from "@shared/schema";
 
+export interface StatisticsResult {
+  totalAdsWatched: number;
+  totalTokensEarned: number;
+  totalCodesRedeemed: number;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -7,6 +13,12 @@ export interface IStorage {
   updateUser(username: string, data: Partial<UpdateUser>): Promise<User | undefined>;
   generateTokenForUser(username: string): Promise<string | undefined>;
   canUserCompleteQuestToday(username: string): Promise<boolean>;
+  
+  // Statistics methods
+  getStatisticsForToday(): Promise<StatisticsResult>;
+  getStatisticsForDate(date: Date): Promise<StatisticsResult>;
+  getStatisticsForMonth(year: number, month: number): Promise<StatisticsResult>;
+  getStatisticsForYear(year: number): Promise<StatisticsResult>;
 }
 
 export class MemStorage implements IStorage {
@@ -114,6 +126,138 @@ export class MemStorage implements IStorage {
     
     // Check if the user has completed fewer than 5 quests today
     return (user.dailyQuestCount || 0) < 5;
+  }
+
+  /**
+   * Helper method to check if a date is the same day as another date
+   */
+  private isSameDay(date1: Date, date2: Date): boolean {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  }
+
+  /**
+   * Helper method to check if a date is in the same month as another date
+   */
+  private isSameMonth(date1: Date, date2: Date): boolean {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth()
+    );
+  }
+
+  /**
+   * Helper method to check if a date is in the same year as another date
+   */
+  private isSameYear(date1: Date, date2: Date): boolean {
+    return date1.getFullYear() === date2.getFullYear();
+  }
+
+  /**
+   * Get statistics for today
+   */
+  async getStatisticsForToday(): Promise<StatisticsResult> {
+    const today = new Date();
+    return this.getStatisticsForDate(today);
+  }
+
+  /**
+   * Get statistics for a specific date
+   */
+  async getStatisticsForDate(date: Date): Promise<StatisticsResult> {
+    let totalAdsWatched = 0;
+    let totalTokensEarned = 0;
+    let totalCodesRedeemed = 0;
+
+    // Iterate through all users and calculate statistics
+    Array.from(this.usersByUsername.values()).forEach(user => {
+      if (user.lastQuestCompletedAt && this.isSameDay(new Date(user.lastQuestCompletedAt), date)) {
+        totalAdsWatched += user.adsWatched || 0;
+        
+        // If user completed quest today
+        if (user.dailyQuestCount) {
+          totalTokensEarned += user.dailyQuestCount;
+        }
+        
+        // Count redeemed tokens
+        if (user.isTokenRedeemed && user.token) {
+          totalCodesRedeemed++;
+        }
+      }
+    });
+
+    return { totalAdsWatched, totalTokensEarned, totalCodesRedeemed };
+  }
+
+  /**
+   * Get statistics for a specific month of a year
+   */
+  async getStatisticsForMonth(year: number, month: number): Promise<StatisticsResult> {
+    let totalAdsWatched = 0;
+    let totalTokensEarned = 0;
+    let totalCodesRedeemed = 0;
+
+    const targetDate = new Date(year, month);
+
+    // Iterate through all users and calculate statistics
+    Array.from(this.usersByUsername.values()).forEach(user => {
+      if (user.lastQuestCompletedAt) {
+        const lastQuestDate = new Date(user.lastQuestCompletedAt);
+        
+        if (this.isSameMonth(lastQuestDate, targetDate)) {
+          totalAdsWatched += user.adsWatched || 0;
+          
+          // Add tokens earned this month
+          if (user.tokenCount) {
+            totalTokensEarned += user.tokenCount;
+          }
+          
+          // Count redeemed tokens
+          if (user.isTokenRedeemed && user.token) {
+            totalCodesRedeemed++;
+          }
+        }
+      }
+    });
+
+    return { totalAdsWatched, totalTokensEarned, totalCodesRedeemed };
+  }
+
+  /**
+   * Get statistics for a specific year
+   */
+  async getStatisticsForYear(year: number): Promise<StatisticsResult> {
+    let totalAdsWatched = 0;
+    let totalTokensEarned = 0;
+    let totalCodesRedeemed = 0;
+
+    const targetDate = new Date(year, 0);
+
+    // Iterate through all users and calculate statistics
+    Array.from(this.usersByUsername.values()).forEach(user => {
+      if (user.lastQuestCompletedAt) {
+        const lastQuestDate = new Date(user.lastQuestCompletedAt);
+        
+        if (this.isSameYear(lastQuestDate, targetDate)) {
+          totalAdsWatched += user.adsWatched || 0;
+          
+          // Add tokens earned this year
+          if (user.tokenCount) {
+            totalTokensEarned += user.tokenCount;
+          }
+          
+          // Count redeemed tokens
+          if (user.isTokenRedeemed && user.token) {
+            totalCodesRedeemed++;
+          }
+        }
+      }
+    });
+
+    return { totalAdsWatched, totalTokensEarned, totalCodesRedeemed };
   }
 }
 
