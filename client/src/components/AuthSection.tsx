@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 interface AuthSectionProps {
   isLoggedIn: boolean;
   username: string;
-  onLogin: (username: string) => void;
+  onLogin: (username: string, password: string, isNewUser: boolean) => void;
   onLogout: () => void;
 }
 
@@ -16,7 +16,8 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
 
   const handleLogin = () => {
     if (inputUsername.trim() && inputPassword.trim()) {
-      onLogin(inputUsername.trim(), inputPassword.trim(), isNewUser);
+      // Always set isNewUser to false for quick login
+      onLogin(inputUsername.trim(), inputPassword.trim(), false);
     }
   };
 
@@ -46,20 +47,16 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
               className="flex-grow px-4 py-3 rounded-lg border-4 border-[#1A1A1A] focus:border-[#00A2FF] focus:outline-none text-lg"
             />
             <div className="flex justify-between items-center">
-              <label className="text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={isNewUser}
-                  onChange={(e) => setIsNewUser(e.target.checked)}
-                  className="mr-2"
-                />
-                I'm a new user
-              </label>
+              <div className="text-sm text-gray-600">
+                <a href="/login" className="text-blue-600 hover:underline">Login</a>
+                <span className="mx-2">|</span>
+                <a href="/signup" className="text-blue-600 hover:underline">Create an account</a>
+              </div>
               <Button
                 onClick={handleLogin}
                 className="game-button bg-[#00A2FF] text-white font-bold py-3 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 text-lg transition-all hover:-translate-y-1"
               >
-                {isNewUser ? "Sign Up" : "Login"}
+                Quick Login
               </Button>
             </div>
           </div>

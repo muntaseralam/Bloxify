@@ -18,6 +18,8 @@ import Docs from "@/pages/Docs";
 import AdConfig from "@/pages/AdConfig";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
 import { useRobloxUser } from "./hooks/useRobloxUser";
 import { useGameProgress } from "./hooks/useGameProgress";
 import { AdProviderProvider } from "./context/AdProviderContext";
@@ -133,6 +135,8 @@ function App() {
             
             <Switch>
               <Route path="/" component={BloxifyApp} />
+              <Route path="/login" component={Login} />
+              <Route path="/signup" component={Signup} />
               <Route path="/admin-login" component={AdminLogin} />
               <AdminProtectedRoute path="/admin" component={AdminDashboard} />
               <AdminProtectedRoute path="/docs" component={Docs} />
@@ -148,6 +152,7 @@ function App() {
 
 function MainNavigation() {
   const { isAdmin } = useAdmin();
+  const { user } = useRobloxUser();
   
   return (
     <nav className="bg-[#1A1A1A] text-white p-4">
@@ -158,6 +163,21 @@ function MainNavigation() {
           </Link>
         </div>
         <div className="flex space-x-4">
+          {!user && (
+            <>
+              <Link href="/login">
+                <span className="cursor-pointer hover:text-blue-400 transition-colors">
+                  Login
+                </span>
+              </Link>
+              <Link href="/signup">
+                <span className="cursor-pointer hover:text-blue-400 transition-colors">
+                  Sign Up
+                </span>
+              </Link>
+            </>
+          )}
+          
           {isAdmin && (
             <>
               <Link href="/admin">
@@ -177,6 +197,7 @@ function MainNavigation() {
               </Link>
             </>
           )}
+          
           {!isAdmin && (
             <Link href="/admin-login">
               <span className="cursor-pointer hover:text-blue-400 transition-colors">
