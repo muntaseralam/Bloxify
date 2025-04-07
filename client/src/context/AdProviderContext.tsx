@@ -2,12 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { AD_CONFIG, loadAdSenseScript, loadEzoicScript, loadAdsterraScript } from '@/lib/adConfig';
 
 // Types of ad providers supported
-type AdProvider = 'adsense' | 'admob' | 'ezoic' | 'adsterra' | 'simulated';
+type AdProvider = 'adsense' | 'ezoic' | 'adsterra' | 'simulated';
 
 interface AdConfigType {
   provider: AdProvider;
   adsenseClientId?: string;
-  admobAppId?: string;
   ezoicSiteId?: string;
   adsterraAccountId?: string;
   isProduction: boolean;
@@ -75,8 +74,6 @@ export const AdProviderProvider: React.FC<AdProviderProviderProps> = ({
       if (config.provider === 'adsterra' || AD_CONFIG.adsterraSiteId) {
         loadAdsterraScript();
       }
-      
-      // AdMob is typically used in mobile apps, not directly loaded in web
       
       // Simple adblock detection
       setTimeout(() => {

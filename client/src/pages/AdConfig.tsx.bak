@@ -180,6 +180,8 @@ export default function AdConfig() {
             </Card>
           </TabsContent>
           
+
+          
           {/* Ezoic Configuration */}
           <TabsContent value="ezoic">
             <Card>
@@ -210,7 +212,7 @@ export default function AdConfig() {
               <CardHeader>
                 <CardTitle>Adsterra Configuration</CardTitle>
                 <CardDescription>
-                  Configure your Adsterra publisher ID and zone IDs for interstitial, popup and rewarded video ads.
+                  Configure your Adsterra publisher ID and zone IDs for interstitial and popup ads.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

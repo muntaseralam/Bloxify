@@ -1,20 +1,18 @@
 // Ad network configuration for the BloxToken app
 // Settings are saved to localStorage via the Ad Config page
 
-export type AdNetworkType = 'adsense' | 'admob' | 'ezoic' | 'adsterra';
+export type AdNetworkType = 'adsense' | 'ezoic' | 'adsterra';
 
 interface AdNetworkConfig {
   enabled: boolean;
   // Account IDs
   adsensePublisherId?: string; // Format: 'ca-pub-XXXXXXXXXXXXXXXX'
-  admobAppId?: string;         // Format: 'ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY'
   ezoicSiteId?: string;        // Format: Your Ezoic Site ID number
   adsterraSiteId?: string;     // Format: Your Adsterra Publisher ID
   
   // Ad unit IDs
   adsenseBannerTopId?: string;
   adsenseBannerBottomId?: string;
-  admobRewardedVideoId?: string;
   adsterraInterstitialZoneId?: string;
   adsterraPopupZoneId?: string;
   adsterraRewardedVideoZoneId?: string;
@@ -36,19 +34,21 @@ function loadConfigFromStorage(): AdNetworkConfig {
     
     if (savedConfig) {
       const parsedConfig = JSON.parse(savedConfig);
-      return {
+      // Filter out only the properties we need for our config
+      const filteredConfig: AdNetworkConfig = {
         ...defaultConfig,
         enabled: productionMode === 'true',
         adsensePublisherId: parsedConfig.adsensePublisherId || undefined,
-        admobAppId: parsedConfig.admobAppId || undefined,
         ezoicSiteId: parsedConfig.ezoicSiteId || undefined,
         adsterraSiteId: parsedConfig.adsterraSiteId || undefined,
         adsenseBannerTopId: parsedConfig.adsenseBannerTopId || undefined,
         adsenseBannerBottomId: parsedConfig.adsenseBannerBottomId || undefined,
-        admobRewardedVideoId: parsedConfig.admobRewardedVideoId || undefined,
         adsterraInterstitialZoneId: parsedConfig.adsterraInterstitialZoneId || undefined,
-        adsterraPopupZoneId: parsedConfig.adsterraPopupZoneId || undefined
+        adsterraPopupZoneId: parsedConfig.adsterraPopupZoneId || undefined,
+        adsterraRewardedVideoZoneId: parsedConfig.adsterraRewardedVideoZoneId || undefined
       };
+      
+      return filteredConfig;
     }
   } catch (e) {
     console.error('Error loading ad configuration from localStorage:', e);
