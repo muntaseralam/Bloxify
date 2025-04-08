@@ -24,41 +24,29 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
   return (
     <div id="authSection" className="mb-8 rounded-lg p-6 bg-gradient-to-br from-[#F2F2F2] to-white border-6 border-[#1A1A1A] shadow-inner">
       <h2 className="text-2xl font-bold mb-4 text-[#1A1A1A]">
-        <i className="fas fa-user-astronaut mr-2"></i> Player Login
+        <i className="fas fa-user-astronaut mr-2"></i> Player Account
       </h2>
       
       {/* Login Form - Shows when not logged in */}
       {!isLoggedIn && (
         <div className="bg-white rounded-lg p-6 shadow-md">
-          <p className="mb-4 text-lg">Choose any username to begin your adventure!</p>
-          <div className="flex flex-col gap-3">
-            <Input
-              type="text"
-              value={inputUsername}
-              onChange={(e) => setInputUsername(e.target.value)}
-              placeholder="Your Roblox Username"
-              className="flex-grow px-4 py-3 rounded-lg border-4 border-[#1A1A1A] focus:border-[#00A2FF] focus:outline-none text-lg"
-            />
-            <Input
-              type="password"
-              value={inputPassword}
-              onChange={(e) => setInputPassword(e.target.value)}
-              placeholder="Enter Password"
-              className="flex-grow px-4 py-3 rounded-lg border-4 border-[#1A1A1A] focus:border-[#00A2FF] focus:outline-none text-lg"
-            />
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600">
-                <a href="/login" className="text-blue-600 hover:underline">Login</a>
-                <span className="mx-2">|</span>
-                <a href="/signup" className="text-blue-600 hover:underline">Create an account</a>
-              </div>
-              <Button
-                onClick={handleLogin}
-                className="game-button bg-[#00A2FF] text-white font-bold py-3 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 text-lg transition-all hover:-translate-y-1"
-              >
-                Quick Login
-              </Button>
+          <p className="mb-4 text-lg">Please log in or create an account to play:</p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <a href="/login" className="w-full">
+                <Button className="w-full game-button bg-[#00A2FF] text-white font-bold py-3 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 text-lg transition-all hover:-translate-y-1">
+                  Log In
+                </Button>
+              </a>
+              <a href="/signup" className="w-full">
+                <Button variant="outline" className="w-full game-button bg-white text-[#00A2FF] font-bold py-3 px-6 rounded-lg border-4 border-[#00A2FF] hover:bg-blue-50 text-lg transition-all hover:-translate-y-1">
+                  Create Account
+                </Button>
+              </a>
             </div>
+            <p className="text-sm text-center text-gray-600 mt-2">
+              Log in to continue your progress or create a new account to start
+            </p>
           </div>
         </div>
       )}

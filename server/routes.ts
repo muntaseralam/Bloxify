@@ -10,14 +10,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
 
-      // Check if user already exists (case-insensitive match)
+      // Check if user already exists
       const existingUser = await storage.getUserByUsername(userData.username);
       if (existingUser) {
-        // If user exists and this is a login attempt, validate password
-        if (existingUser.password === userData.password) {
-          return res.status(200).json(existingUser);
-        }
-        return res.status(401).json({ message: "Invalid username or password" });
+        // If user exists, prevent registration and suggest login
+        return res.status(409).json({ 
+          message: "Account already exists. Please log in instead." 
+        });
       }
 
       // Create new user

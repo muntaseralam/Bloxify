@@ -59,11 +59,25 @@ export default function Signup() {
         // Redirect to login page with success parameter
         setLocation("/login?signupSuccess=true");
       } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to create account",
-          variant: "destructive",
-        });
+        // Special handling for account already exists
+        if (response.status === 409) {
+          toast({
+            title: "Account Already Exists",
+            description: "This username is already registered. Please log in instead.",
+            variant: "destructive",
+          });
+          
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            setLocation("/login");
+          }, 2000);
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to create account",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Signup error:", error);
