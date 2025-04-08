@@ -6,6 +6,10 @@ export interface StatisticsResult {
   totalCodesRedeemed: number;
 }
 
+export interface UserRegistrationStats {
+  newUsersCount: number;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -19,6 +23,12 @@ export interface IStorage {
   getStatisticsForDate(date: Date): Promise<StatisticsResult>;
   getStatisticsForMonth(year: number, month: number): Promise<StatisticsResult>;
   getStatisticsForYear(year: number): Promise<StatisticsResult>;
+  
+  // User Registration Statistics methods
+  getUserRegistrationsForToday(): Promise<UserRegistrationStats>;
+  getUserRegistrationsForDate(date: Date): Promise<UserRegistrationStats>;
+  getUserRegistrationsForMonth(year: number, month: number): Promise<UserRegistrationStats>;
+  getUserRegistrationsForYear(year: number): Promise<UserRegistrationStats>;
 }
 
 export class MemStorage implements IStorage {
@@ -258,6 +268,70 @@ export class MemStorage implements IStorage {
     });
 
     return { totalAdsWatched, totalTokensEarned, totalCodesRedeemed };
+  }
+
+  /**
+   * Get user registrations for today
+   */
+  async getUserRegistrationsForToday(): Promise<UserRegistrationStats> {
+    const today = new Date();
+    return this.getUserRegistrationsForDate(today);
+  }
+
+  /**
+   * Get user registrations for a specific date
+   */
+  async getUserRegistrationsForDate(date: Date): Promise<UserRegistrationStats> {
+    let newUsersCount = 0;
+
+    // Iterate through all users and count registrations for the specified date
+    Array.from(this.usersByUsername.values()).forEach(user => {
+      if (user.createdAt && this.isSameDay(new Date(user.createdAt), date)) {
+        newUsersCount++;
+      }
+    });
+
+    return { newUsersCount };
+  }
+
+  /**
+   * Get user registrations for a specific month
+   */
+  async getUserRegistrationsForMonth(year: number, month: number): Promise<UserRegistrationStats> {
+    let newUsersCount = 0;
+    const targetDate = new Date(year, month);
+
+    // Iterate through all users and count registrations for the specified month
+    Array.from(this.usersByUsername.values()).forEach(user => {
+      if (user.createdAt) {
+        const createdDate = new Date(user.createdAt);
+        if (this.isSameMonth(createdDate, targetDate)) {
+          newUsersCount++;
+        }
+      }
+    });
+
+    return { newUsersCount };
+  }
+
+  /**
+   * Get user registrations for a specific year
+   */
+  async getUserRegistrationsForYear(year: number): Promise<UserRegistrationStats> {
+    let newUsersCount = 0;
+    const targetDate = new Date(year, 0);
+
+    // Iterate through all users and count registrations for the specified year
+    Array.from(this.usersByUsername.values()).forEach(user => {
+      if (user.createdAt) {
+        const createdDate = new Date(user.createdAt);
+        if (this.isSameYear(createdDate, targetDate)) {
+          newUsersCount++;
+        }
+      }
+    });
+
+    return { newUsersCount };
   }
 }
 

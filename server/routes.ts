@@ -303,6 +303,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Registration Statistics API Endpoints
+  
+  // Get user registrations for today
+  app.get("/api/admin/registrations/today", async (req, res) => {
+    try {
+      const stats = await storage.getUserRegistrationsForToday();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching today's user registrations:", error);
+      res.status(500).json({ message: "Failed to fetch user registrations for today" });
+    }
+  });
+
+  // Get user registrations for a specific date
+  app.get("/api/admin/registrations/date/:date", async (req, res) => {
+    try {
+      const dateStr = req.params.date;
+      const date = new Date(dateStr);
+      
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      const stats = await storage.getUserRegistrationsForDate(date);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user registrations for specific date:", error);
+      res.status(500).json({ message: "Failed to fetch user registrations for the specified date" });
+    }
+  });
+
+  // Get user registrations for a specific month
+  app.get("/api/admin/registrations/month/:year/:month", async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month) - 1; // Adjust for 0-based months in JavaScript
+      
+      if (isNaN(year) || isNaN(month) || month < 0 || month > 11) {
+        return res.status(400).json({ message: "Invalid year or month format. Month should be 1-12" });
+      }
+      
+      const stats = await storage.getUserRegistrationsForMonth(year, month);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user registrations for specific month:", error);
+      res.status(500).json({ message: "Failed to fetch user registrations for the specified month" });
+    }
+  });
+
+  // Get user registrations for a specific year
+  app.get("/api/admin/registrations/year/:year", async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      
+      if (isNaN(year)) {
+        return res.status(400).json({ message: "Invalid year format" });
+      }
+      
+      const stats = await storage.getUserRegistrationsForYear(year);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user registrations for specific year:", error);
+      res.status(500).json({ message: "Failed to fetch user registrations for the specified year" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdmin } from '@/hooks/useAdmin';
 import AdminStatistics from '@/components/AdminStatistics';
+import UserRegistrationStats from '@/components/UserRegistrationStats';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AdminDashboard() {
@@ -23,9 +24,16 @@ export default function AdminDashboard() {
           <TabsTrigger value="configuration">Configuration</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="statistics" className="space-y-6">
-          <h2 className="text-2xl font-bold mb-4">Platform Statistics</h2>
-          <AdminStatistics />
+        <TabsContent value="statistics" className="space-y-8">
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Platform Activity</h2>
+            <AdminStatistics />
+          </section>
+          
+          <section>
+            <h2 className="text-2xl font-bold mb-4">User Registration Analytics</h2>
+            <UserRegistrationStats />
+          </section>
         </TabsContent>
         
         <TabsContent value="configuration" className="space-y-6">
