@@ -31,28 +31,20 @@ export function useGameProgress(username: string | undefined) {
         } else if (userData.gameCompleted) {
           step = 2; // Ad viewing
         } else if (userData.id) {
-          // For users who haven't started their quest yet, automatically set them to minigame step
-          step = 1; // Minigame
+          // For users who haven't started their quest yet, either:
+          // - Show the waitlist first time (step 0)
+          // - Or directly start the minigame (step 1) on subsequent logins
           
-          // If this is a fresh login (no quest progress), initialize game state to minigame
-          if (userData.adsWatched === 0 && !userData.gameCompleted && !initialized.current) {
-            // We'll update the backend in a moment
-            console.log("Initializing new quest for user");
+          // Check if the user has any progress
+          if (userData.adsWatched > 0 || userData.gameCompleted) {
+            step = 1; // Continue minigame where they left off
+          } else if (!initialized.current) {
+            // First time login with no progress - show waitlist
+            step = 0;
             initialized.current = true;
-            
-            // Initialize game state with a slight delay
-            setTimeout(() => {
-              apiRequest("PATCH", `/api/users/${username}`, {
-                gameCompleted: false,
-                adsWatched: 0
-              }).then(response => {
-                if (response.ok) {
-                  console.log("Game state initialized");
-                }
-              }).catch(error => {
-                console.error("Error initializing game state:", error);
-              });
-            }, 500);
+          } else {
+            // They've seen the waitlist already, start the game
+            step = 1;
           }
         }
         

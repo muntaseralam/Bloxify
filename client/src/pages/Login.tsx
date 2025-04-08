@@ -57,9 +57,15 @@ export default function Login() {
       // Only redirect to home page on successful login
       if (loginSuccess) {
         // Add a short delay to allow the state update to propagate
+        toast({
+          title: "Success!",
+          description: "Logged in successfully! Redirecting to your quest...",
+        });
+        
+        // Add a longer delay to ensure the user object and game state are loaded
         setTimeout(() => {
           setLocation("/");
-        }, 500);
+        }, 1500);
       }
     } catch (error) {
       console.error("Login error:", error);

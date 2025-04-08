@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Switch, Route, Link } from "wouter";
+import { Switch, Route, Link, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -27,6 +28,8 @@ import { AdminAuthProvider, useAdmin } from "./hooks/useAdmin";
 
 function BloxifyApp() {
   const { user, login, logout } = useRobloxUser();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { 
     currentStep, 
     gameCompleted, 
@@ -42,9 +45,24 @@ function BloxifyApp() {
 
   // Handler to start the quest journey
   const startQuest = () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login or create an account to start your quest",
+        variant: "default",
+      });
+      setLocation("/login");
+      return;
+    }
+    
     // Reset ads watched and set current step to 1 (minigame)
     updateGameStatus(1, false, 0);
+    
+    toast({
+      title: "Quest Started!",
+      description: "Your quest has begun! Complete the minigame to continue.",
+      variant: "default",
+    });
   };
 
   return (
@@ -115,7 +133,14 @@ function BloxifyApp() {
         )}
         
         {!user && (
-          <WaitlistSection onStartQuest={() => {}} />
+          <WaitlistSection onStartQuest={() => {
+            toast({
+              title: "Login Required",
+              description: "Please login or create an account to start your quest",
+              variant: "default",
+            });
+            setLocation("/login");
+          }} />
         )}
       </div>
       

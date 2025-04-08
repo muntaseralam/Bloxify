@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 // import { apiRequest } from "@/lib/queryClient"; // Removed as it's not fully defined and causes errors.
 
@@ -14,6 +14,24 @@ interface RobloxUser {
 export function useRobloxUser() {
   const [user, setUser] = useState<RobloxUser | null>(null);
   const { toast } = useToast();
+  
+  // Check if user is already logged in when the component mounts
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          console.log("User already logged in:", userData);
+        }
+      } catch (error) {
+        console.error("Error checking login status:", error);
+      }
+    };
+    
+    checkLoginStatus();
+  }, []);
 
   const login = useCallback(async (username: string, password: string, isNewUser: boolean) => {
     try {

@@ -6,6 +6,12 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get current logged-in user (session check)
+  app.get("/api/users/me", async (req, res) => {
+    // In a real app, this would check session/cookie data for current user
+    // For now, we'll simulate "no session" behavior as we're using client state
+    res.status(404).json({ message: "User not found" });
+  });
   app.post("/api/users", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
