@@ -34,7 +34,7 @@ export function useRobloxUser() {
           title: "Success!",
           description: "Logged in successfully!",
         });
-        return;
+        return true; // Return true to indicate successful login
       } else {
         const errorData = await loginResponse.json();
         toast({
@@ -42,6 +42,7 @@ export function useRobloxUser() {
           description: errorData.message || "Invalid username or password",
           variant: "destructive",
         });
+        return false;
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -50,6 +51,7 @@ export function useRobloxUser() {
         description: "Failed to log in. Please try again.",
         variant: "destructive",
       });
+      return false;
     }
   }, [toast]);
 

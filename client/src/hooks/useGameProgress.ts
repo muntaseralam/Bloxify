@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -11,6 +11,7 @@ export function useGameProgress(username: string | undefined) {
   const [dailyQuestCount, setDailyQuestCount] = useState(0);
   const totalAds = 15;
   const { toast } = useToast();
+  const initialized = useRef(false);
 
   // Fetch initial user progress
   useEffect(() => {
@@ -30,7 +31,29 @@ export function useGameProgress(username: string | undefined) {
         } else if (userData.gameCompleted) {
           step = 2; // Ad viewing
         } else if (userData.id) {
+          // For users who haven't started their quest yet, automatically set them to minigame step
           step = 1; // Minigame
+          
+          // If this is a fresh login (no quest progress), initialize game state to minigame
+          if (userData.adsWatched === 0 && !userData.gameCompleted && !initialized.current) {
+            // We'll update the backend in a moment
+            console.log("Initializing new quest for user");
+            initialized.current = true;
+            
+            // Initialize game state with a slight delay
+            setTimeout(() => {
+              apiRequest("PATCH", `/api/users/${username}`, {
+                gameCompleted: false,
+                adsWatched: 0
+              }).then(response => {
+                if (response.ok) {
+                  console.log("Game state initialized");
+                }
+              }).catch(error => {
+                console.error("Error initializing game state:", error);
+              });
+            }, 500);
+          }
         }
         
         setCurrentStep(step);
@@ -45,9 +68,9 @@ export function useGameProgress(username: string | undefined) {
     };
 
     fetchUserProgress();
-  }, [username]);
+  }, [username, totalAds]);
 
-  // Update game status
+  // Update game status function
   const updateGameStatus = useCallback(async (
     step: number, 
     completed: boolean, 
@@ -87,7 +110,7 @@ export function useGameProgress(username: string | undefined) {
         variant: "destructive",
       });
     }
-  }, [username, toast]);
+  }, [username, toast, tokenCount]);
 
   // Increment ad count
   const incrementAdCount = useCallback(async (newCount: number) => {
@@ -122,7 +145,7 @@ export function useGameProgress(username: string | undefined) {
         variant: "destructive",
       });
     }
-  }, [username, toast]);
+  }, [username, toast, tokenCount]);
 
   // Generate token
   const generateToken = useCallback(async () => {

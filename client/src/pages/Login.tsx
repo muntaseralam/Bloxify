@@ -52,11 +52,15 @@ export default function Login() {
     
     try {
       // Using the login function from useRobloxUser hook
-      await login(username.trim(), password.trim(), false);
+      const loginSuccess = await login(username.trim(), password.trim(), false);
       
-      // Redirect to home page on successful login
-      // The login function already handles success/error toasts
-      setLocation("/");
+      // Only redirect to home page on successful login
+      if (loginSuccess) {
+        // Add a short delay to allow the state update to propagate
+        setTimeout(() => {
+          setLocation("/");
+        }, 500);
+      }
     } catch (error) {
       console.error("Login error:", error);
     } finally {
