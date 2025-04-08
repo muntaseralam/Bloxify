@@ -134,11 +134,7 @@ function BloxifyApp() {
         
         {!user && (
           <WaitlistSection onStartQuest={() => {
-            toast({
-              title: "Login Required",
-              description: "Please login or create an account to start your quest",
-              variant: "default",
-            });
+            // Redirect to login page - the toast will be handled in WaitlistSection component
             setLocation("/login");
           }} />
         )}

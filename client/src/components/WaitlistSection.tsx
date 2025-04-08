@@ -1,10 +1,31 @@
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface WaitlistSectionProps {
   onStartQuest: () => void;
 }
 
 const WaitlistSection = ({ onStartQuest }: WaitlistSectionProps) => {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  // Safely handle start quest
+  const handleStartQuest = () => {
+    try {
+      onStartQuest();
+    } catch (error) {
+      console.error("Error starting quest:", error);
+      // Fallback in case the passed callback fails
+      toast({
+        title: "Login Required",
+        description: "Please login or create an account to start your quest",
+        variant: "default",
+      });
+      setLocation("/login");
+    }
+  };
+
   return (
     <div>
       <div className="bg-[#F2F2F2] p-6 rounded-lg border-6 border-[#1A1A1A] shadow-inner">
@@ -67,7 +88,7 @@ const WaitlistSection = ({ onStartQuest }: WaitlistSectionProps) => {
           
           <div className="text-center">
             <Button 
-              onClick={onStartQuest}
+              onClick={handleStartQuest}
               className="game-button bg-[#00A2FF] text-white font-bold py-3 px-8 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 text-lg inline-flex items-center transition-all hover:-translate-y-1"
             >
               <i className="fas fa-play-circle mr-2"></i> Start Your Quest
