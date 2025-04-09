@@ -12,17 +12,30 @@ export function useGameProgress(username: string | undefined) {
   const totalAds = 15;
   const { toast } = useToast();
   const initialized = useRef(false);
+  const lastFetchedUsername = useRef<string | undefined>(undefined);
 
   // Fetch initial user progress
   useEffect(() => {
     if (!username) return;
+    
+    // Check if we need to refetch (only fetch if username changed or first load)
+    if (lastFetchedUsername.current === username && initialized.current) {
+      return;
+    }
+    
+    console.log(`Fetching game progress for user: ${username}`);
+    lastFetchedUsername.current = username;
 
     const fetchUserProgress = async () => {
       try {
         const response = await fetch(`/api/users/${username}`);
-        if (!response.ok) throw new Error("Failed to fetch user progress");
+        if (!response.ok) {
+          console.error(`Failed to fetch user progress: ${response.status}`);
+          throw new Error("Failed to fetch user progress");
+        }
 
         const userData = await response.json();
+        console.log("User data loaded:", userData);
         
         // Determine current step based on user progress
         let step = 0;
@@ -48,12 +61,14 @@ export function useGameProgress(username: string | undefined) {
           }
         }
         
+        console.log(`Setting currentStep to ${step} for user ${username}`);
         setCurrentStep(step);
         setGameCompleted(userData.gameCompleted);
         setAdsWatched(userData.adsWatched);
         setTokenCount(userData.tokenCount || 0);
         setToken(userData.token);
         setDailyQuestCount(userData.dailyQuestCount || 0);
+        initialized.current = true;
       } catch (error) {
         console.error("Error fetching user progress:", error);
       }

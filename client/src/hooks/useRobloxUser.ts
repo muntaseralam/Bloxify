@@ -9,21 +9,63 @@ interface RobloxUser {
   gameCompleted: boolean;
   adsWatched: number;
   token: string | null;
+  tokenCount?: number;
+  dailyQuestCount?: number;
 }
 
+// Key for localStorage
+const USER_STORAGE_KEY = 'bloxify_user';
+
 export function useRobloxUser() {
-  const [user, setUser] = useState<RobloxUser | null>(null);
+  // Initialize state from localStorage if available
+  const [user, setUser] = useState<RobloxUser | null>(() => {
+    try {
+      const savedUser = localStorage.getItem(USER_STORAGE_KEY);
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      console.error("Failed to parse stored user:", e);
+      return null;
+    }
+  });
+  
   const { toast } = useToast();
   
   // Check if user is already logged in when the component mounts
   useEffect(() => {
     const checkLoginStatus = async () => {
+      // First try to load from localStorage (already done in useState initialization)
+      if (user) {
+        console.log("User loaded from localStorage:", user);
+        
+        // Verify the user with the server if needed
+        try {
+          // Optionally verify user with server 
+          const response = await fetch(`/api/users/${user.username}`);
+          if (response.ok) {
+            const userData = await response.json();
+            console.log("User validated:", userData);
+            // Update with latest user data
+            setUser(userData);
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+          } else {
+            console.warn("Stored user is invalid, clearing local storage");
+            localStorage.removeItem(USER_STORAGE_KEY);
+            setUser(null);
+          }
+        } catch (error) {
+          console.error("Error validating stored user:", error);
+        }
+        return;
+      }
+      
+      // Fallback to session-based login
       try {
         const response = await fetch('/api/users/me');
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
-          console.log("User already logged in:", userData);
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+          console.log("User logged in from session:", userData);
         }
       } catch (error) {
         console.error("Error checking login status:", error);
@@ -31,10 +73,11 @@ export function useRobloxUser() {
     };
     
     checkLoginStatus();
-  }, []);
+  }, [user?.username]);
 
   const login = useCallback(async (username: string, password: string, isNewUser: boolean) => {
     try {
+      console.log("Login attempt for:", username);
       // We now only support direct login through the login endpoint
       // The isNewUser parameter is kept for backward compatibility
       const loginResponse = await fetch('/api/users/login', {
@@ -47,7 +90,14 @@ export function useRobloxUser() {
 
       if (loginResponse.ok) {
         const data = await loginResponse.json();
+        
+        // Store user in localStorage for persistence
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data));
+        
+        // Update state
         setUser(data);
+        
+        console.log("Login successful, user data:", data);
         toast({
           title: "Success!",
           description: "Logged in successfully!",
@@ -75,6 +125,8 @@ export function useRobloxUser() {
 
   const logout = useCallback(() => {
     setUser(null);
+    // Clear user from localStorage
+    localStorage.removeItem(USER_STORAGE_KEY);
     toast({
       title: "Logged out",
       description: "You have been logged out successfully.",

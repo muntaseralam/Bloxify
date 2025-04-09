@@ -51,24 +51,32 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      console.log("Attempting login with:", username.trim());
       // Using the login function from useRobloxUser hook
       const loginSuccess = await login(username.trim(), password.trim(), false);
       
+      console.log("Login success status:", loginSuccess);
+      
       // Only redirect to home page on successful login
       if (loginSuccess) {
-        // Add a short delay to allow the state update to propagate
         toast({
           title: "Success!",
           description: "Logged in successfully! Redirecting to your quest...",
         });
         
-        // Add a longer delay to ensure the user object and game state are loaded
-        setTimeout(() => {
-          setLocation("/");
-        }, 1500);
+        console.log("Redirecting to home page...");
+        
+        // Force navigation with window.location instead of wouter's setLocation
+        // This causes a full page refresh which ensures proper state initialization
+        window.location.href = '/';
       }
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
