@@ -102,11 +102,15 @@ export function useGameLogic(canvasRef: RefObject<HTMLCanvasElement>, options: G
   
   // Handle keyboard input
   const handleKeyDown = (e: KeyboardEvent) => {
-    keys[e.key.toLowerCase()] = true;
+    if (e.key) {
+      keys[e.key.toLowerCase()] = true;
+    }
   };
   
   const handleKeyUp = (e: KeyboardEvent) => {
-    keys[e.key.toLowerCase()] = false;
+    if (e.key) {
+      keys[e.key.toLowerCase()] = false;
+    }
   };
   
   // Handle touch events for mobile devices
