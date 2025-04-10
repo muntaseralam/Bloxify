@@ -53,8 +53,10 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
     setError(null);
     
     try {
-      // Create basic auth header using current user credentials
-      const authHeader = 'Basic ' + btoa(`${currentUser?.username}:${currentUser?.password}`);
+      // For accessing admin APIs, we'll create an auth header with current user credentials
+      // Since we have the user object from localStorage, we can access the password
+      // In a real production app, this should use tokens or sessions instead
+      const authHeader = 'Basic ' + btoa(`${currentUser?.username}:${(currentUser as any)?.password}`);
       
       const response = await fetch('/api/admin/users', {
         headers: {
@@ -112,7 +114,7 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
     
     try {
       // Create basic auth header using current user credentials
-      const authHeader = 'Basic ' + btoa(`${currentUser?.username}:${currentUser?.password}`);
+      const authHeader = 'Basic ' + btoa(`${currentUser?.username}:${(currentUser as any)?.password}`);
       
       const response = await fetch(`/api/admin/users/${username}/role`, {
         method: 'PATCH',

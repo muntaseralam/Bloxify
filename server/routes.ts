@@ -504,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user registrations for a specific year
-  app.get("/api/admin/registrations/year/:year", async (req, res) => {
+  app.get("/api/admin/registrations/year/:year", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       
@@ -517,6 +517,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user registrations for specific year:", error);
       res.status(500).json({ message: "Failed to fetch user registrations for the specified year" });
+    }
+  });
+
+  // User Management API Endpoints
+  
+  // Get all users
+  app.get("/api/admin/users", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Get a specific user by ID
+  app.get("/api/admin/users/:id", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
+      
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user by ID:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Update a user's role
+  app.patch("/api/admin/users/:username/role", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const { username } = req.params;
+      const { role } = req.body;
+      
+      // Validate role
+      if (!role || !["user", "admin", "owner"].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be one of: user, admin, owner" });
+      }
+      
+      // Check if the user is trying to update their own role (not allowed)
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Basic ')) {
+        const base64Credentials = authHeader.split(' ')[1];
+        const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
+        const [currentUsername] = credentials.split(':');
+        
+        if (username === currentUsername) {
+          return res.status(403).json({ message: "Cannot update your own role" });
+        }
+      }
+      
+      // Check if the authenticated user is an owner or trying to set owner role
+      if (role === "owner") {
+        // Get the current user's role from the auth header
+        const authHeader = req.headers.authorization;
+        
+        // Extract the user from the Basic Auth header (if available)
+        if (authHeader && authHeader.startsWith('Basic ')) {
+          const base64Credentials = authHeader.split(' ')[1];
+          const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
+          const [currentUsername] = credentials.split(':');
+          
+          // Get the current user to check their role
+          const currentUser = await storage.getUserByUsername(currentUsername);
+          
+          // Only owners can create other owners
+          if (!currentUser || currentUser.role !== "owner") {
+            return res.status(403).json({ message: "Only owners can promote users to owner role" });
+          }
+        }
+      }
+      
+      // Update the user's role
+      const updatedUser = await storage.updateUserRole(username, role);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
     }
   });
 
