@@ -359,6 +359,24 @@ export class MemStorage implements IStorage {
 
     return { newUsersCount };
   }
+
+  /**
+   * Update a user's role
+   * @param username The username of the user to update
+   * @param role The new role to assign
+   * @returns The updated user or undefined if not found
+   */
+  async updateUserRole(username: string, role: "user" | "admin" | "owner"): Promise<User | undefined> {
+    return this.updateUser(username, { role });
+  }
+
+  /**
+   * Get all users in the system
+   * @returns Array of all users
+   */
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.usersByUsername.values());
+  }
 }
 
 export const storage = new MemStorage();

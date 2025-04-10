@@ -1,9 +1,42 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, StatisticsResult } from "./storage";
-import { insertUserSchema, updateUserSchema } from "@shared/schema";
+import { insertUserSchema, updateUserSchema, User, UserRole } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+
+// Middleware to check if the user has the required role
+const requireRole = (roles: UserRole[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Get the authenticated user from request (you might need to adjust this based on how you handle authentication)
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Extract username from auth header (Basic Auth format: "Basic username:password")
+      const encodedCredentials = authHeader.split(' ')[1];
+      const decodedCredentials = Buffer.from(encodedCredentials, 'base64').toString('utf-8');
+      const [username] = decodedCredentials.split(':');
+      
+      // Get the user from storage
+      const user = await storage.getUserByUsername(username);
+      
+      // Check if user exists and has the required role
+      if (!user || !roles.includes(user.role as UserRole)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      // Attach the user to the request for later use
+      (req as any).user = user;
+      
+      next();
+    } catch (error) {
+      res.status(500).json({ message: "Authentication error" });
+    }
+  };
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get current logged-in user (session check)
@@ -242,10 +275,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Role-based User Management API Endpoints
+  
+  // Get all users (admin and owner only)
+  app.get("/api/admin/users", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Return user data without sensitive information
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        createdAt: user.createdAt,
+        tokenCount: user.tokenCount,
+        adsWatched: user.adsWatched,
+        gameCompleted: user.gameCompleted,
+        dailyQuestCount: user.dailyQuestCount,
+        lastQuestCompletedAt: user.lastQuestCompletedAt
+      }));
+      
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Update user role (owner only can change to any role, admin can only promote to admin)
+  app.patch("/api/admin/users/:username/role", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const { username } = req.params;
+      const { role } = req.body;
+      
+      // Type validation for role
+      if (!role || !["user", "admin", "owner"].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be 'user', 'admin', or 'owner'." });
+      }
+      
+      // Get current authenticated user
+      const authUser = (req as any).user as User;
+      
+      // Only owner can promote to owner role
+      if (role === "owner" && authUser.role !== "owner") {
+        return res.status(403).json({ message: "Only owners can promote users to owner role" });
+      }
+      
+      // Admin can only promote to admin, not owner
+      if (authUser.role === "admin" && role === "owner") {
+        return res.status(403).json({ message: "Admins cannot promote users to owner role" });
+      }
+      
+      // Update the user's role
+      const updatedUser = await storage.updateUserRole(username, role as UserRole);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ 
+        message: `User ${username} role updated to ${role}`,
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          role: updatedUser.role
+        }
+      });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  // Check current authenticated user role
+  app.get("/api/auth/role", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ 
+          isAuthenticated: false, 
+          message: "Authentication required" 
+        });
+      }
+      
+      // Extract username and password from auth header
+      const encodedCredentials = authHeader.split(' ')[1];
+      const decodedCredentials = Buffer.from(encodedCredentials, 'base64').toString('utf-8');
+      const [username, password] = decodedCredentials.split(':');
+      
+      // Get the user from storage
+      const user = await storage.getUserByUsername(username);
+      
+      // Check if user exists and password matches
+      if (!user || user.password !== password) {
+        return res.status(401).json({ 
+          isAuthenticated: false, 
+          message: "Invalid credentials" 
+        });
+      }
+      
+      // Return the user's role
+      res.json({
+        isAuthenticated: true,
+        username: user.username,
+        role: user.role
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        isAuthenticated: false, 
+        message: "Authentication error" 
+      });
+    }
+  });
+  
   // Admin Statistics API Endpoints
   
   // Get statistics for today
-  app.get("/api/admin/statistics/today", async (req, res) => {
+  app.get("/api/admin/statistics/today", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const stats = await storage.getStatisticsForToday();
       res.json(stats);
@@ -256,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get statistics for a specific date
-  app.get("/api/admin/statistics/date/:date", async (req, res) => {
+  app.get("/api/admin/statistics/date/:date", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const dateStr = req.params.date;
       const date = new Date(dateStr);
@@ -274,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get statistics for a specific month
-  app.get("/api/admin/statistics/month/:year/:month", async (req, res) => {
+  app.get("/api/admin/statistics/month/:year/:month", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month) - 1; // Adjust for 0-based months in JavaScript
@@ -292,7 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get statistics for a specific year
-  app.get("/api/admin/statistics/year/:year", async (req, res) => {
+  app.get("/api/admin/statistics/year/:year", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       
@@ -311,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Registration Statistics API Endpoints
   
   // Get user registrations for today
-  app.get("/api/admin/registrations/today", async (req, res) => {
+  app.get("/api/admin/registrations/today", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const stats = await storage.getUserRegistrationsForToday();
       res.json(stats);
@@ -322,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user registrations for a specific date
-  app.get("/api/admin/registrations/date/:date", async (req, res) => {
+  app.get("/api/admin/registrations/date/:date", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const dateStr = req.params.date;
       const date = new Date(dateStr);
@@ -340,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user registrations for a specific month
-  app.get("/api/admin/registrations/month/:year/:month", async (req, res) => {
+  app.get("/api/admin/registrations/month/:year/:month", requireRole(["admin", "owner"]), async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month) - 1; // Adjust for 0-based months in JavaScript
