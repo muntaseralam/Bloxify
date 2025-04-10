@@ -219,7 +219,8 @@ function MainNavigation() {
             </>
           )}
           
-          {!isAdmin && (
+          {/* Only show the admin login link if the user is logged in */}
+          {user && !isAdmin && (
             <Link href="/admin-login">
               <span className="cursor-pointer hover:text-blue-400 transition-colors">
                 Admin
