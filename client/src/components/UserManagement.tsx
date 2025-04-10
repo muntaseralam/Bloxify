@@ -48,24 +48,39 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
   const { user: currentUser } = useRobloxUser();
 
   // Function to fetch users from the API
-  const fetchUsers = async () => {
+  const fetchUsers = async (retryCount = 0) => {
     setLoading(true);
     setError(null);
     
     try {
+      // Make sure we have the current user before attempting to fetch
+      if (!currentUser?.username) {
+        setError('No authenticated user found. Please log in again.');
+        return;
+      }
+      
       // For accessing admin APIs, we'll create an auth header with current user credentials
       // Since we have the user object from localStorage, we can access the password
       // In a real production app, this should use tokens or sessions instead
-      const authHeader = 'Basic ' + btoa(`${currentUser?.username}:${(currentUser as any)?.password}`);
+      const authHeader = 'Basic ' + btoa(`${currentUser.username}:${(currentUser as any).password}`);
       
+      console.log('Fetching users with auth header for:', currentUser.username);
       const response = await fetch('/api/admin/users', {
         headers: {
-          'Authorization': authHeader
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch users. Access denied.');
+        // If we get a 401/403, the authentication could be delayed, retry once
+        if ((response.status === 401 || response.status === 403) && retryCount < 2) {
+          console.log(`Auth failed, retrying... (${retryCount + 1})`);
+          // Wait a bit before retrying
+          setTimeout(() => fetchUsers(retryCount + 1), 1000);
+          return;
+        }
+        throw new Error(`Failed to fetch users. Access denied. Status: ${response.status}`);
       }
       
       const data = await response.json();
@@ -79,10 +94,11 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
       setSelectedRole(initialRoles);
       
     } catch (err) {
+      console.error('Error fetching users:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while fetching users');
       toast({
         title: 'Error',
-        description: 'Failed to load users.',
+        description: 'Failed to load users. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -92,13 +108,25 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
 
   // Fetch users on component mount
   useEffect(() => {
-    fetchUsers();
-  }, [currentUser]);
+    if (currentUser?.username) {
+      fetchUsers();
+    }
+  }, [currentUser?.username]);
 
   // Function to update a user's role
   const updateUserRole = async (username: string, newRole: string) => {
     // Don't update if role hasn't changed
     if (selectedRole[username] === newRole) return;
+    
+    // Make sure we have the current user before attempting to update
+    if (!currentUser?.username) {
+      toast({
+        title: 'Authentication Error',
+        description: 'No authenticated user found. Please log in again.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     // Don't allow non-owners to set owner role
     if (newRole === 'owner' && !isOwner) {
@@ -114,8 +142,9 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
     
     try {
       // Create basic auth header using current user credentials
-      const authHeader = 'Basic ' + btoa(`${currentUser?.username}:${(currentUser as any)?.password}`);
+      const authHeader = 'Basic ' + btoa(`${currentUser.username}:${(currentUser as any).password}`);
       
+      console.log(`Updating user ${username} to role ${newRole}`);
       const response = await fetch(`/api/admin/users/${username}/role`, {
         method: 'PATCH',
         headers: {
@@ -145,6 +174,7 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
       fetchUsers();
       
     } catch (err) {
+      console.error('Error updating user role:', err);
       toast({
         title: 'Update Failed',
         description: err instanceof Error ? err.message : 'Failed to update user role',
