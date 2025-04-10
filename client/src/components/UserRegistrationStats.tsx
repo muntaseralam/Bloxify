@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useToast } from '@/hooks/use-toast';
+import { useRobloxUser } from '@/hooks/useRobloxUser';
 
 interface UserRegistrationStats {
   newUsersCount: number;
@@ -11,6 +12,7 @@ interface UserRegistrationStats {
 
 export default function UserRegistrationStats() {
   const { toast } = useToast();
+  const { user } = useRobloxUser();
   const [timeRange, setTimeRange] = useState<'today' | 'specific' | 'month' | 'year'>('today');
   const [stats, setStats] = useState<UserRegistrationStats | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -45,10 +47,16 @@ export default function UserRegistrationStats() {
           break;
       }
       
+      // Create basic auth header for admin API authentication
+      const authHeader = user 
+        ? 'Basic ' + btoa(`${user.username}:${(user as any).password}`) 
+        : '';
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
         }
       });
       

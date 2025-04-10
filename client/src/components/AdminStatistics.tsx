@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useToast } from '@/hooks/use-toast';
+import { useRobloxUser } from '@/hooks/useRobloxUser';
 
 interface StatisticsResult {
   totalAdsWatched: number;
@@ -13,6 +14,7 @@ interface StatisticsResult {
 
 export default function AdminStatistics() {
   const { toast } = useToast();
+  const { user } = useRobloxUser();
   const [timeRange, setTimeRange] = useState<'today' | 'specific' | 'month' | 'year'>('today');
   const [statistics, setStatistics] = useState<StatisticsResult | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -47,10 +49,16 @@ export default function AdminStatistics() {
           break;
       }
       
+      // Create basic auth header for admin API authentication
+      const authHeader = user 
+        ? 'Basic ' + btoa(`${user.username}:${(user as any).password}`) 
+        : '';
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
         }
       });
       
