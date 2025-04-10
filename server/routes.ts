@@ -305,33 +305,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user role (owner only can change to any role, admin can only promote to admin)
   app.patch("/api/admin/users/:username/role", requireRole(["admin", "owner"]), async (req, res) => {
     try {
+      console.log("Role update request received");
       const { username } = req.params;
+      console.log("Request params:", req.params);
+      console.log("Request body:", req.body);
       const { role } = req.body;
       
       // Type validation for role
       if (!role || !["user", "admin", "owner"].includes(role)) {
+        console.log("Invalid role:", role);
         return res.status(400).json({ message: "Invalid role. Must be 'user', 'admin', or 'owner'." });
       }
       
       // Get current authenticated user
       const authUser = (req as any).user as User;
+      console.log("Auth user:", authUser.username, "with role:", authUser.role);
       
       // Only owner can promote to owner role
       if (role === "owner" && authUser.role !== "owner") {
+        console.log("Permission denied: Non-owner trying to set owner role");
         return res.status(403).json({ message: "Only owners can promote users to owner role" });
       }
       
       // Admin can only promote to admin, not owner
       if (authUser.role === "admin" && role === "owner") {
+        console.log("Permission denied: Admin trying to set owner role");
         return res.status(403).json({ message: "Admins cannot promote users to owner role" });
       }
+      
+      // Get user before update to check current role
+      const userBeforeUpdate = await storage.getUserByUsername(username);
+      console.log("User before update:", userBeforeUpdate?.username, "with role:", userBeforeUpdate?.role);
+      
+      if (!userBeforeUpdate) {
+        console.log("User not found:", username);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Log the role change
+      console.log(`Updating user ${username} role from ${userBeforeUpdate.role} to ${role}`);
       
       // Update the user's role
       const updatedUser = await storage.updateUserRole(username, role as UserRole);
       
       if (!updatedUser) {
+        console.log("Update failed, user not found after update");
         return res.status(404).json({ message: "User not found" });
       }
+      
+      console.log("Role update successful:", updatedUser.username, "new role:", updatedUser.role);
       
       res.json({ 
         message: `User ${username} role updated to ${role}`,
@@ -555,63 +577,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update a user's role
-  app.patch("/api/admin/users/:username/role", requireRole(["admin", "owner"]), async (req, res) => {
-    try {
-      const { username } = req.params;
-      const { role } = req.body;
-      
-      // Validate role
-      if (!role || !["user", "admin", "owner"].includes(role)) {
-        return res.status(400).json({ message: "Invalid role. Must be one of: user, admin, owner" });
-      }
-      
-      // Check if the user is trying to update their own role (not allowed)
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Basic ')) {
-        const base64Credentials = authHeader.split(' ')[1];
-        const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
-        const [currentUsername] = credentials.split(':');
-        
-        if (username === currentUsername) {
-          return res.status(403).json({ message: "Cannot update your own role" });
-        }
-      }
-      
-      // Check if the authenticated user is an owner or trying to set owner role
-      if (role === "owner") {
-        // Get the current user's role from the auth header
-        const authHeader = req.headers.authorization;
-        
-        // Extract the user from the Basic Auth header (if available)
-        if (authHeader && authHeader.startsWith('Basic ')) {
-          const base64Credentials = authHeader.split(' ')[1];
-          const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
-          const [currentUsername] = credentials.split(':');
-          
-          // Get the current user to check their role
-          const currentUser = await storage.getUserByUsername(currentUsername);
-          
-          // Only owners can create other owners
-          if (!currentUser || currentUser.role !== "owner") {
-            return res.status(403).json({ message: "Only owners can promote users to owner role" });
-          }
-        }
-      }
-      
-      // Update the user's role
-      const updatedUser = await storage.updateUserRole(username, role);
-      
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating user role:", error);
-      res.status(500).json({ message: "Failed to update user role" });
-    }
-  });
+  // This duplicate route handler was removed to fix the issue with role updates
+  // The primary handler is already defined at the beginning of the file
 
   const httpServer = createServer(app);
   return httpServer;

@@ -115,11 +115,18 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
 
   // Function to update a user's role
   const updateUserRole = async (username: string, newRole: string) => {
+    // Debug logs
+    console.log(`Attempting to update ${username} from role ${selectedRole[username]} to ${newRole}`);
+    
     // Don't update if role hasn't changed
-    if (selectedRole[username] === newRole) return;
+    if (selectedRole[username] === newRole) {
+      console.log('No role change detected, skipping update');
+      return;
+    }
     
     // Make sure we have the current user before attempting to update
     if (!currentUser?.username) {
+      console.error('No authenticated user found');
       toast({
         title: 'Authentication Error',
         description: 'No authenticated user found. Please log in again.',
@@ -130,6 +137,7 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
     
     // Don't allow non-owners to set owner role
     if (newRole === 'owner' && !isOwner) {
+      console.error('Non-owner trying to set owner role');
       toast({
         title: 'Permission Denied',
         description: 'Only owners can promote users to owner role.',
@@ -144,7 +152,9 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
       // Create basic auth header using current user credentials
       const authHeader = 'Basic ' + btoa(`${currentUser.username}:${(currentUser as any).password}`);
       
-      console.log(`Updating user ${username} to role ${newRole}`);
+      console.log(`Sending PATCH request to update user ${username} to role ${newRole}`);
+      console.log(`Request body:`, JSON.stringify({ role: newRole }));
+      
       const response = await fetch(`/api/admin/users/${username}/role`, {
         method: 'PATCH',
         headers: {
@@ -154,9 +164,28 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
         body: JSON.stringify({ role: newRole })
       });
       
+      const responseText = await response.text();
+      console.log(`Response status: ${response.status}, text:`, responseText);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user role');
+        let errorMessage = 'Failed to update user role';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the text as is
+          errorMessage = responseText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Try to parse JSON response
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log('Update success, response data:', responseData);
+      } catch (e) {
+        console.warn('Could not parse response as JSON:', e);
       }
       
       // Update was successful
@@ -170,7 +199,8 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
         description: `User ${username} role updated to ${newRole}`,
       });
       
-      // Refresh user list
+      // Refresh user list to show the updated roles
+      console.log('Refreshing user list after role update');
       fetchUsers();
       
     } catch (err) {
