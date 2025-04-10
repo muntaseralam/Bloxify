@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRobloxUser } from './useRobloxUser';
 
 // Define the admin credentials interface
 interface AdminCredentials {
@@ -9,21 +10,20 @@ interface AdminCredentials {
 // Define the admin authentication context type
 interface AdminAuthContextType {
   isAdmin: boolean;
-  login: (credentials: AdminCredentials) => boolean;
+  isOwner: boolean;
+  login: (credentials: AdminCredentials) => Promise<boolean>;
   logout: () => void;
+  currentRole: string | null;
 }
 
 // Create context with default values
 const AdminAuthContext = createContext<AdminAuthContextType>({
   isAdmin: false,
-  login: () => false,
+  isOwner: false,
+  login: async () => false,
   logout: () => {},
+  currentRole: null
 });
-
-// Admin credentials (in a real app, this would be verified by an API)
-// This is a simple solution for your needs - in production this should be server-side
-const ADMIN_USERNAME = 'bloxify2025';
-const ADMIN_PASSWORD = 'Gamewebsite@2025'; // You should change this to a secure password
 
 // Custom hook to use the admin auth context
 export const useAdmin = () => useContext(AdminAuthContext);
@@ -34,44 +34,29 @@ interface AdminAuthProviderProps {
 }
 
 export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, login: userLogin, logout: userLogout } = useRobloxUser();
+  
+  // Determine admin status based on user role
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+  const isOwner = user?.role === 'owner';
+  const currentRole = user?.role || null;
 
-  // Check for existing admin session on first load
-  useEffect(() => {
-    // Only access localStorage in browser environment
-    if (typeof window !== 'undefined') {
-      const adminSession = localStorage.getItem('blox_admin_session');
-      if (adminSession === 'true') {
-        setIsAdmin(true);
-      }
-    }
-  }, []);
-
-  // Login function to verify admin credentials
-  const login = (credentials: AdminCredentials): boolean => {
-    if (
-      credentials.username === ADMIN_USERNAME &&
-      credentials.password === ADMIN_PASSWORD
-    ) {
-      setIsAdmin(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('blox_admin_session', 'true');
-      }
-      return true;
-    }
-    return false;
+  // Login function using the API to verify credentials
+  const login = async (credentials: AdminCredentials): Promise<boolean> => {
+    const success = await userLogin(credentials.username, credentials.password, false);
+    
+    // We rely on the server to validate if the user has admin/owner role
+    // The user status/role will be updated via the useRobloxUser hook
+    return success;
   };
 
   // Logout function
   const logout = () => {
-    setIsAdmin(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('blox_admin_session');
-    }
+    userLogout();
   };
 
   return (
-    <AdminAuthContext.Provider value={{ isAdmin, login, logout }}>
+    <AdminAuthContext.Provider value={{ isAdmin, isOwner, login, logout, currentRole }}>
       {children}
     </AdminAuthContext.Provider>
   );

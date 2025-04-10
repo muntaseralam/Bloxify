@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 interface RobloxUser {
   id: number;
   username: string;
+  role: "user" | "admin" | "owner"; // Add role field
   gameCompleted: boolean;
   adsWatched: number;
   token: string | null;

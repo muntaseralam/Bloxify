@@ -10,28 +10,50 @@ import { useAdmin } from '@/hooks/useAdmin';
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAdmin();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, isAdmin } = useAdmin();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login({ username, password });
+    setIsLoading(true);
     
-    if (success) {
+    try {
+      const success = await login({ username, password });
+      
+      if (success) {
+        // After login, check if the user has admin or owner role
+        if (isAdmin) {
+          toast({
+            title: 'Login Successful',
+            description: 'You are now logged in with administrative access.'
+          });
+          // Redirect to the intended URL or admin dashboard
+          const redirect = new URLSearchParams(window.location.search).get('redirect');
+          setLocation(redirect || '/admin');
+        } else {
+          toast({
+            title: 'Access Denied',
+            description: 'Your account does not have administrative privileges.',
+            variant: 'destructive'
+          });
+        }
+      } else {
+        toast({
+          title: 'Login Failed',
+          description: 'Invalid credentials.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
       toast({
-        title: 'Login Successful',
-        description: 'You are now logged in as admin.'
-      });
-      // Redirect to the intended URL or admin dashboard
-      const redirect = new URLSearchParams(window.location.search).get('redirect');
-      setLocation(redirect || '/admin');
-    } else {
-      toast({
-        title: 'Login Failed',
-        description: 'Invalid admin credentials.',
+        title: 'Login Error',
+        description: 'An error occurred during login. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
