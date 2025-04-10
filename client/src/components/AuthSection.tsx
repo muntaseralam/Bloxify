@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAdmin } from "@/hooks/useAdmin";
+import { Link } from "wouter";
 
 interface AuthSectionProps {
   isLoggedIn: boolean;
@@ -13,6 +15,7 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
   const [inputUsername, setInputUsername] = useState("");
   const [inputPassword, setInputPassword] = useState("");
   const [isNewUser, setIsNewUser] = useState(false);
+  const { isAdmin } = useAdmin();
 
   const handleLogin = () => {
     if (inputUsername.trim() && inputPassword.trim()) {
@@ -64,7 +67,14 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
                 <p className="text-sm text-gray-600">Ready to complete your quest?</p>
               </div>
             </div>
-            <div>
+            <div className="flex flex-col gap-2 items-end">
+              {isLoggedIn && !isAdmin && (
+                <Link href="/admin-login">
+                  <span className="text-sm text-gray-600 hover:text-blue-500 hover:underline cursor-pointer">
+                    Admin Access
+                  </span>
+                </Link>
+              )}
               <button 
                 onClick={onLogout}
                 className="text-[#FF4500] hover:underline font-semibold"

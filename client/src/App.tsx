@@ -219,14 +219,7 @@ function MainNavigation() {
             </>
           )}
           
-          {/* Only show the admin login link if the user is logged in */}
-          {user && !isAdmin && (
-            <Link href="/admin-login">
-              <span className="cursor-pointer hover:text-blue-400 transition-colors">
-                Admin
-              </span>
-            </Link>
-          )}
+          {/* Remove the Admin link entirely for regular users */}
         </div>
       </div>
     </nav>
