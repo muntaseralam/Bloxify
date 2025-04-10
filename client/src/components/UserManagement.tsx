@@ -41,6 +41,8 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Track both the current and selected roles for each user
+  const [currentRoles, setCurrentRoles] = useState<{ [key: string]: string }>({});
   const [selectedRole, setSelectedRole] = useState<{ [key: string]: string }>({});
   const [updating, setUpdating] = useState<{ [key: string]: boolean }>({});
   const [updateSuccess, setUpdateSuccess] = useState<{ [key: string]: boolean }>({});
@@ -84,14 +86,25 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
       }
       
       const data = await response.json();
+      console.log('Fetched users data:', data);
       setUsers(data);
       
-      // Initialize selectedRole state with current roles
-      const initialRoles: { [key: string]: string } = {};
+      // Initialize both current roles and selected roles
+      const currentRolesMap: { [key: string]: string } = {};
+      const selectedRolesMap: { [key: string]: string } = {};
+      
       data.forEach((user: User) => {
-        initialRoles[user.username] = user.role;
+        currentRolesMap[user.username] = user.role;
+        selectedRolesMap[user.username] = user.role;
+        console.log(`User ${user.username} has role: ${user.role}`);
       });
-      setSelectedRole(initialRoles);
+      
+      console.log('Setting currentRoles:', currentRolesMap);
+      console.log('Setting selectedRole:', selectedRolesMap);
+      
+      // Set both current and selected roles
+      setCurrentRoles(currentRolesMap);
+      setSelectedRole(selectedRolesMap);
       
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -116,10 +129,10 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
   // Function to update a user's role
   const updateUserRole = async (username: string, newRole: string) => {
     // Debug logs
-    console.log(`Attempting to update ${username} from role ${selectedRole[username]} to ${newRole}`);
+    console.log(`Attempting to update ${username} from role ${currentRoles[username]} to ${newRole}`);
     
-    // Don't update if role hasn't changed
-    if (selectedRole[username] === newRole) {
+    // Don't update if role hasn't changed from the current role stored in the backend
+    if (currentRoles[username] === newRole) {
       console.log('No role change detected, skipping update');
       return;
     }
@@ -279,8 +292,12 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Select
+                        defaultValue={user.role}
                         value={selectedRole[user.username]}
-                        onValueChange={(value) => setSelectedRole({...selectedRole, [user.username]: value})}
+                        onValueChange={(value) => {
+                          console.log(`Changed role selection for ${user.username} from ${selectedRole[user.username]} to ${value}`);
+                          setSelectedRole({...selectedRole, [user.username]: value});
+                        }}
                         disabled={updating[user.username]}
                       >
                         <SelectTrigger className="w-32">
@@ -295,7 +312,7 @@ export default function UserManagement({ isOwner }: UserManagementProps) {
                       
                       <Button 
                         onClick={() => updateUserRole(user.username, selectedRole[user.username])}
-                        disabled={user.role === selectedRole[user.username] || updating[user.username]}
+                        disabled={currentRoles[user.username] === selectedRole[user.username] || updating[user.username]}
                         size="sm"
                       >
                         {updating[user.username] ? 'Updating...' : 'Update'}
