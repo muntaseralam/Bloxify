@@ -2,10 +2,14 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Define user roles
+export type UserRole = "user" | "admin" | "owner";
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").default("user").notNull(),
   gameCompleted: boolean("game_completed").default(false).notNull(),
   adsWatched: integer("ads_watched").default(0).notNull(),
   tokenCount: integer("token_count").default(0).notNull(),
@@ -19,9 +23,13 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  role: true,
+}).extend({
+  role: z.enum(["user", "admin", "owner"]).default("user"),
 });
 
 export const updateUserSchema = createInsertSchema(users).pick({
+  role: true,
   gameCompleted: true,
   adsWatched: true,
   tokenCount: true,

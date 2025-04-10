@@ -18,6 +18,10 @@ export interface IStorage {
   generateTokenForUser(username: string): Promise<string | undefined>;
   canUserCompleteQuestToday(username: string): Promise<boolean>;
   
+  // Role management methods
+  updateUserRole(username: string, role: "user" | "admin" | "owner"): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
+  
   // Statistics methods
   getStatisticsForToday(): Promise<StatisticsResult>;
   getStatisticsForDate(date: Date): Promise<StatisticsResult>;
@@ -40,6 +44,25 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.usersByUsername = new Map();
     this.currentId = 1;
+    
+    // Initialize with the default owner account
+    const defaultOwner: User = {
+      id: this.currentId++,
+      username: "RAFID",
+      password: "Rafid@2009",
+      role: "owner",
+      gameCompleted: false,
+      adsWatched: 0,
+      tokenCount: 0,
+      token: null,
+      isTokenRedeemed: false,
+      lastQuestCompletedAt: null,
+      dailyQuestCount: 0,
+      createdAt: new Date(),
+    };
+    
+    this.users.set(defaultOwner.id, defaultOwner);
+    this.usersByUsername.set(defaultOwner.username, defaultOwner);
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -54,12 +77,15 @@ export class MemStorage implements IStorage {
     const id = this.currentId++;
     const username = insertUser.username;
     const password = insertUser.password;
+    // Always assign "user" role for new registrations, regardless of what's provided
+    const role = "user";
     
     // Create a new user object
     const user: User = {
       id,
       username,
       password,
+      role,
       gameCompleted: false,
       adsWatched: 0,
       tokenCount: 0,
