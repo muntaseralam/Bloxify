@@ -4,6 +4,7 @@ import { storage, StatisticsResult } from "./storage";
 import { insertUserSchema, updateUserSchema, User, UserRole } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { robloxApi } from "./robloxApi";
 
 // Middleware to check if the user has the required role
 const requireRole = (roles: UserRole[]) => {
@@ -60,6 +61,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create new user
       const newUser = await storage.createUser(userData);
+      
+      // Check if the user has a VIP gamepass
+      try {
+        const hasVIPGamepass = await robloxApi.hasVIPGamepass(userData.username);
+        
+        // If they have the gamepass, grant VIP status
+        if (hasVIPGamepass) {
+          const updatedUser = await storage.updateVIPStatus(userData.username, true, 7);
+          console.log(`VIP status granted to new user ${userData.username} from gamepass ownership`);
+          return res.status(201).json(updatedUser || newUser);
+        }
+      } catch (error) {
+        console.error(`Error checking VIP gamepass for new user ${userData.username}:`, error);
+        // Continue with registration even if gamepass check fails
+      }
+      
       res.status(201).json(newUser);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -81,6 +98,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check VIP status (update if expired)
       await storage.checkAndUpdateVIPStatus(username);
+
+      // Check for Roblox VIP gamepass ownership
+      try {
+        const hasVIPGamepass = await robloxApi.hasVIPGamepass(username);
+        
+        // If they have the gamepass but aren't marked as VIP, grant VIP status
+        if (hasVIPGamepass && !user.isVIP) {
+          await storage.updateVIPStatus(username, true, 7);
+          console.log(`VIP status granted to ${username} from gamepass ownership`);
+        }
+      } catch (error) {
+        console.error(`Error checking VIP gamepass for ${username}:`, error);
+        // Continue with login even if gamepass check fails
+      }
 
       // Reset quest state when user logs in
       const canCompleteToday = await storage.canUserCompleteQuestToday(username);
@@ -244,6 +275,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check VIP gamepass ownership
+  app.post("/api/users/:username/check-vip", async (req, res) => {
+    try {
+      const { username } = req.params;
+      
+      // Verify user exists
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if the user has the VIP gamepass
+      const hasVIPGamepass = await robloxApi.hasVIPGamepass(username);
+      
+      // If they have the gamepass but aren't marked as VIP, update their status
+      if (hasVIPGamepass && !user.isVIP) {
+        // Grant VIP for 7 days
+        const updatedUser = await storage.updateVIPStatus(username, true, 7);
+        
+        return res.json({
+          hasVIP: true,
+          message: "VIP status granted from gamepass ownership!",
+          vipExpiresAt: updatedUser?.vipExpiresAt
+        });
+      } 
+      // If they don't have the gamepass but are marked as VIP, check if it's from another source
+      else if (!hasVIPGamepass && user.isVIP) {
+        // Check if VIP has expired
+        const isStillVIP = await storage.checkAndUpdateVIPStatus(username);
+        
+        // Get the latest user data
+        const updatedUser = await storage.getUserByUsername(username);
+        
+        return res.json({
+          hasVIP: isStillVIP,
+          message: isStillVIP ? "VIP status is active from another source." : "VIP status has expired.",
+          vipExpiresAt: updatedUser?.vipExpiresAt
+        });
+      }
+      // Return appropriate status
+      else {
+        return res.json({
+          hasVIP: user.isVIP || false,
+          message: hasVIPGamepass ? "VIP status is active." : "User does not have VIP status.",
+          vipExpiresAt: user.vipExpiresAt
+        });
+      }
+    } catch (error) {
+      console.error("Error checking VIP status:", error);
+      res.status(500).json({ message: "Failed to check VIP status" });
+    }
+  });
+
   // Verify token (for Roblox game integration)
   app.post("/api/verify-token", async (req, res) => {
     try {
@@ -315,7 +399,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adsWatched: user.adsWatched,
         gameCompleted: user.gameCompleted,
         dailyQuestCount: user.dailyQuestCount,
-        lastQuestCompletedAt: user.lastQuestCompletedAt
+        lastQuestCompletedAt: user.lastQuestCompletedAt,
+        isVIP: user.isVIP,
+        vipExpiresAt: user.vipExpiresAt
       }));
       
       res.json(safeUsers);
@@ -419,11 +505,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Return the user's role
+      // Check VIP status before returning
+      await storage.checkAndUpdateVIPStatus(username);
+      
+      // Get latest user data
+      const updatedUser = await storage.getUserByUsername(username);
+      if (!updatedUser) {
+        return res.status(404).json({ 
+          isAuthenticated: false, 
+          message: "User not found" 
+        });
+      }
+      
+      // Return the user's role and VIP status
       res.json({
         isAuthenticated: true,
-        username: user.username,
-        role: user.role
+        username: updatedUser.username,
+        role: updatedUser.role,
+        isVIP: updatedUser.isVIP || false,
+        vipExpiresAt: updatedUser.vipExpiresAt
       });
     } catch (error) {
       res.status(500).json({ 

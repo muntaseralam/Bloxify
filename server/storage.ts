@@ -149,6 +149,16 @@ export class MemStorage implements IStorage {
     const user = await this.getUserByUsername(username);
     if (!user) return true; // New users can always complete the quest
     
+    // VIP users can always complete quests, no daily limit
+    if (user.isVIP) {
+      // Check if VIP status is valid
+      const isVIPValid = await this.checkAndUpdateVIPStatus(username);
+      if (isVIPValid) {
+        return true;
+      }
+      // If VIP has expired, continue with regular checks below
+    }
+    
     // If user has no last completion date, they can complete the quest
     if (!user.lastQuestCompletedAt) return true;
     
