@@ -55,7 +55,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingUser) {
         // If user exists, prevent registration and suggest login
         return res.status(409).json({ 
-          message: "Account already exists. Please log in instead." 
+          message: "Account already exists. Please log in." 
+        });
+      }
+      
+      // Verify that the Roblox username exists
+      const isValidRobloxUsername = await robloxApi.isValidRobloxUsername(userData.username);
+      
+      if (!isValidRobloxUsername) {
+        return res.status(400).json({ 
+          message: "Roblox username does not exist." 
         });
       }
 
@@ -90,10 +99,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/login", async (req, res) => {
     try {
       const { username, password } = req.body;
+      
+      // Check if username exists in our database
       const user = await storage.getUserByUsername(username);
 
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Verify that the Roblox username still exists
+      const isValidRobloxUsername = await robloxApi.isValidRobloxUsername(username);
+      
+      if (!isValidRobloxUsername) {
+        return res.status(401).json({ 
+          message: "Roblox username no longer exists. Please contact support." 
+        });
       }
 
       // Check VIP status (update if expired)

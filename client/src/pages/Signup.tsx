@@ -103,7 +103,7 @@ export default function Signup() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Roblox Username</Label>
               <Input
                 id="username"
                 placeholder="Your Roblox Username"
@@ -112,6 +112,9 @@ export default function Signup() {
                 required
                 disabled={isLoading}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter your real Roblox username. Only valid Roblox accounts can register.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

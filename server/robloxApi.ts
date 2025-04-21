@@ -90,6 +90,26 @@ export class RobloxAPI {
   get vipGamepassId(): number {
     return ROBLOX_VIP_GAMEPASS_ID;
   }
+  
+  /**
+   * Check if a Roblox username is valid/exists
+   * @param username The username to check
+   * @returns Boolean indicating if the username exists
+   */
+  async isValidRobloxUsername(username: string): Promise<boolean> {
+    try {
+      const response = await axios.post('https://users.roblox.com/v1/usernames/users', {
+        usernames: [username],
+        excludeBannedUsers: true
+      });
+      
+      const data = response.data;
+      return !!(data.data && data.data.length > 0);
+    } catch (error) {
+      console.error('Error validating Roblox username:', error);
+      return false;
+    }
+  }
 }
 
 // Export a singleton instance of the API
