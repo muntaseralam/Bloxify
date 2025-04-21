@@ -18,6 +18,10 @@ export interface IStorage {
   generateTokenForUser(username: string): Promise<string | undefined>;
   canUserCompleteQuestToday(username: string): Promise<boolean>;
   
+  // VIP management methods
+  updateVIPStatus(username: string, isVIP: boolean, durationDays?: number): Promise<User | undefined>;
+  checkAndUpdateVIPStatus(username: string): Promise<boolean>;
+  
   // Role management methods
   updateUserRole(username: string, role: "user" | "admin" | "owner"): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;

@@ -6,12 +6,14 @@ import { useToast } from "@/hooks/use-toast";
 interface RobloxUser {
   id: number;
   username: string;
-  role: "user" | "admin" | "owner"; // Add role field
+  role: "user" | "admin" | "owner";
   gameCompleted: boolean;
   adsWatched: number;
   token: string | null;
   tokenCount?: number;
   dailyQuestCount?: number;
+  isVIP?: boolean;
+  vipExpiresAt?: string | null;
 }
 
 // Key for localStorage
