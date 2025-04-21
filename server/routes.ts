@@ -750,6 +750,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This duplicate route handler was removed to fix the issue with role updates
   // The primary handler is already defined at the beginning of the file
 
+  // Test endpoint for Roblox API integration (temporary, for testing only)
+  app.get("/api/test/roblox-gamepass/:username", async (req, res) => {
+    try {
+      const { username } = req.params;
+      
+      // Test the Roblox API integration
+      const hasVIPGamepass = await robloxApi.hasVIPGamepass(username);
+      
+      res.json({
+        username,
+        hasVIPGamepass,
+        gamepassId: robloxApi.vipGamepassId
+      });
+    } catch (error) {
+      console.error("Roblox API test error:", error);
+      res.status(500).json({ 
+        message: "Failed to test Roblox API integration",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

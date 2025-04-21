@@ -82,6 +82,14 @@ export class RobloxAPI {
   async hasVIPGamepass(username: string): Promise<boolean> {
     return this.hasGamepass(username, ROBLOX_VIP_GAMEPASS_ID);
   }
+  
+  /**
+   * Get the VIP gamepass ID
+   * @returns The VIP gamepass ID
+   */
+  get vipGamepassId(): number {
+    return ROBLOX_VIP_GAMEPASS_ID;
+  }
 }
 
 // Export a singleton instance of the API

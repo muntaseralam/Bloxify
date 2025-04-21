@@ -136,5 +136,59 @@ export function useRobloxUser() {
     });
   }, [toast]);
 
-  return { user, login, logout };
+  // Function to check and update VIP status from Roblox gamepass
+  const checkVIPStatus = useCallback(async () => {
+    if (!user) return false;
+    
+    try {
+      console.log("Checking VIP status for:", user.username);
+      const response = await fetch(`/api/users/${user.username}/check-vip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // If VIP status changed, update the user object
+        if (data.hasVIP !== user.isVIP) {
+          const updatedUser = { 
+            ...user, 
+            isVIP: data.hasVIP,
+            vipExpiresAt: data.vipExpiresAt 
+          };
+          
+          // Store updated user in localStorage
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+          
+          // Update state
+          setUser(updatedUser);
+          
+          if (data.hasVIP && !user.isVIP) {
+            toast({
+              title: "VIP Status Activated!",
+              description: data.message || "You now have VIP status!",
+            });
+          } else if (!data.hasVIP && user.isVIP) {
+            toast({
+              title: "VIP Status Changed",
+              description: data.message || "Your VIP status has been updated.",
+            });
+          }
+        }
+        
+        return data.hasVIP;
+      } else {
+        console.error("Failed to check VIP status:", await response.json());
+        return user.isVIP || false;
+      }
+    } catch (error) {
+      console.error("Error checking VIP status:", error);
+      return user.isVIP || false;
+    }
+  }, [user, toast]);
+
+  return { user, login, logout, checkVIPStatus };
 }
