@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { AlertTriangle, Clock } from "lucide-react";
+import { AlertTriangle, Clock, Crown, CheckCircle2 } from "lucide-react";
 
 interface TokenSectionProps {
   token: string | null;
@@ -11,11 +11,57 @@ interface TokenSectionProps {
   onStartNewQuest?: () => void;
   dailyQuestCount?: number;
   generateToken?: () => void;
+  isVIP?: boolean;
+  vipExpiresAt?: string | null;
+  onCheckVIPStatus?: () => Promise<boolean>;
 }
 
-const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQuestCount = 1, generateToken }: TokenSectionProps) => {
+const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQuestCount = 1, generateToken, isVIP = false, vipExpiresAt, onCheckVIPStatus }: TokenSectionProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [vipCheckLoading, setVipCheckLoading] = useState(false);
+  
+  // Format VIP expiration date
+  const formatVIPExpiry = () => {
+    if (!vipExpiresAt) return '';
+    
+    const expiryDate = new Date(vipExpiresAt);
+    return expiryDate.toLocaleDateString();
+  };
+  
+  // Handle VIP status check
+  const handleCheckVIPStatus = async () => {
+    if (!onCheckVIPStatus) {
+      toast({
+        title: "VIP Status Check",
+        description: "Cannot check VIP status at this time.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setVipCheckLoading(true);
+    try {
+      const hasVIP = await onCheckVIPStatus();
+      
+      toast({
+        title: hasVIP ? "VIP Status Active" : "No VIP Status",
+        description: hasVIP 
+          ? "Your VIP status is active! You can enjoy unlimited daily quests and redeem codes with fewer tokens." 
+          : "You don't have VIP status. Purchase the VIP gamepass in Roblox to unlock extra benefits!",
+        variant: hasVIP ? "default" : "destructive"
+      });
+    } catch (error) {
+      console.error("Error checking VIP status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to check VIP status. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setVipCheckLoading(false);
+    }
+  };
   
   const handleCopyToken = () => {
     if (!token) return;
@@ -224,6 +270,48 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
             <Clock className="h-4 w-4 mr-2 text-blue-400" /> 
             Daily quests: You've completed {dailyQuestCount}/5 quests today. Each quest earns 1 token.
           </p>
+        </div>
+        
+        {/* VIP Status Section */}
+        <div className={`mt-2 p-3 rounded-lg text-white ${isVIP ? 'bg-purple-600 bg-opacity-70' : 'bg-gray-600 bg-opacity-50'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Crown className={`h-5 w-5 mr-2 ${isVIP ? 'text-yellow-300' : 'text-gray-400'}`} />
+              <span className="font-bold">VIP Status: {isVIP ? 'Active' : 'Inactive'}</span>
+            </div>
+            {isVIP && (
+              <div className="text-xs px-2 py-1 bg-purple-800 rounded-full flex items-center">
+                <span>Expires: {formatVIPExpiry()}</span>
+              </div>
+            )}
+          </div>
+          
+          {isVIP ? (
+            <div className="mt-2 bg-purple-700 bg-opacity-50 rounded p-2 text-sm">
+              <p className="flex items-center">
+                <CheckCircle2 className="h-4 w-4 mr-2 text-green-300" />
+                <span>Unlimited daily quests & redeem with as few as 1 token!</span>
+              </p>
+            </div>
+          ) : (
+            <div className="mt-2 bg-gray-700 bg-opacity-50 rounded p-2 text-sm">
+              <p>Purchase the VIP gamepass in Roblox to unlock unlimited daily quests and redeem with fewer tokens.</p>
+            </div>
+          )}
+          
+          {onCheckVIPStatus && (
+            <Button 
+              onClick={handleCheckVIPStatus}
+              disabled={vipCheckLoading}
+              className={`mt-2 w-full ${isVIP ? 'bg-purple-500 hover:bg-purple-600' : 'bg-gray-600 hover:bg-gray-700'} text-white`}
+            >
+              {vipCheckLoading ? (
+                <><Clock className="h-4 w-4 mr-2 animate-spin" /> Checking VIP Status...</>
+              ) : (
+                <><Crown className="h-4 w-4 mr-2" /> Check VIP Gamepass</>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>

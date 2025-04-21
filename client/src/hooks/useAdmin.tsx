@@ -34,7 +34,7 @@ interface AdminAuthProviderProps {
 }
 
 export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
-  const { user, login: userLogin, logout: userLogout } = useRobloxUser();
+  const { user, login: userLogin, logout: userLogout, checkVIPStatus } = useRobloxUser();
   
   // Determine admin status based on user role
   const isAdmin = user?.role === 'admin' || user?.role === 'owner';

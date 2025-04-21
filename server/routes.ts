@@ -533,6 +533,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Check user VIP status from Roblox gamepass
+  app.post("/api/users/:username/check-vip", async (req, res) => {
+    try {
+      const { username } = req.params;
+      
+      // Get the current user
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if the user owns the VIP gamepass in Roblox
+      const hasVIPGamepass = await robloxApi.hasVIPGamepass(username);
+      
+      console.log(`Checked VIP status for ${username}: Roblox gamepass=${hasVIPGamepass}, Current VIP=${user.isVIP || false}`);
+      
+      // Update the user's VIP status if needed
+      let updatedUser = user;
+      
+      if (hasVIPGamepass && !user.isVIP) {
+        // User has VIP gamepass but not VIP status - update it
+        updatedUser = await storage.updateVIPStatus(username, true);
+        
+        console.log(`Updated VIP status for ${username} to true. Expires: ${updatedUser?.vipExpiresAt}`);
+        
+        return res.json({
+          hasVIP: true,
+          vipExpiresAt: updatedUser?.vipExpiresAt,
+          message: "VIP status activated based on your Roblox gamepass!"
+        });
+      } else if (!hasVIPGamepass && user.isVIP) {
+        // User doesn't have VIP gamepass but has VIP status - this could be admin granted,
+        // but we'll leave it as is since admins can grant VIP status separately
+        return res.json({
+          hasVIP: true,
+          vipExpiresAt: user.vipExpiresAt,
+          message: "You have VIP status, but no VIP gamepass detected. Your VIP may be admin granted."
+        });
+      } else {
+        // Status is already correct
+        return res.json({
+          hasVIP: user.isVIP || false,
+          vipExpiresAt: user.vipExpiresAt,
+          message: user.isVIP 
+            ? "Your VIP status is active!" 
+            : "You don't have VIP status. Purchase the VIP gamepass to unlock benefits!"
+        });
+      }
+    } catch (error) {
+      console.error("Error checking VIP status:", error);
+      res.status(500).json({ message: "Failed to check VIP status" });
+    }
+  });
+
   // Update user VIP status (admin and owner only)
   app.patch("/api/admin/users/:username/vip", requireRole(["admin", "owner"]), async (req, res) => {
     try {
