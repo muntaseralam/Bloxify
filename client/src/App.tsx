@@ -27,7 +27,7 @@ import { AdProviderProvider } from "./context/AdProviderContext";
 import { AdminAuthProvider, useAdmin } from "./hooks/useAdmin";
 
 function BloxifyApp() {
-  const { user, login, logout } = useRobloxUser();
+  const { user, login, logout, checkVIPStatus } = useRobloxUser();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { 
@@ -121,8 +121,11 @@ function BloxifyApp() {
                 username={user.username}
                 tokenCount={tokenCount}
                 dailyQuestCount={dailyQuestCount}
-                onStartNewQuest={dailyQuestCount < 5 ? startQuest : undefined}
+                onStartNewQuest={dailyQuestCount < 5 || user.isVIP ? startQuest : undefined}
                 generateToken={generateToken}
+                isVIP={user.isVIP}
+                vipExpiresAt={user.vipExpiresAt}
+                onCheckVIPStatus={checkVIPStatus}
               />
             )}
             

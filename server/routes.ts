@@ -555,7 +555,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (hasVIPGamepass && !user.isVIP) {
         // User has VIP gamepass but not VIP status - update it
-        updatedUser = await storage.updateVIPStatus(username, true);
+        const updatedUserData = await storage.updateVIPStatus(username, true);
+        
+        if (!updatedUserData) {
+          return res.status(404).json({ message: "Failed to update user VIP status" });
+        }
+        
+        updatedUser = updatedUserData;
         
         console.log(`Updated VIP status for ${username} to true. Expires: ${updatedUser?.vipExpiresAt}`);
         
@@ -614,11 +620,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Updating user ${username} VIP status from ${userBeforeUpdate.isVIP} to ${isVIP}${durationDays ? ` for ${durationDays} days` : ''}`);
       
       // Update the user's VIP status
-      const updatedUser = await storage.updateVIPStatus(username, isVIP, durationDays);
+      const updatedUserData = await storage.updateVIPStatus(username, isVIP, durationDays);
       
-      if (!updatedUser) {
+      if (!updatedUserData) {
         return res.status(404).json({ message: "User not found" });
       }
+      
+      const updatedUser = updatedUserData;
       
       res.json({ 
         message: `User ${username} VIP status updated to ${isVIP}${isVIP ? ` (expires: ${updatedUser.vipExpiresAt})` : ''}`,
