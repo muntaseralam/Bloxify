@@ -62,6 +62,8 @@ export class MemStorage implements IStorage {
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
       dailyQuestCount: 0,
+      isVIP: true,
+      vipExpiresAt: null, // Owner has permanent VIP
       createdAt: new Date(),
     };
     
@@ -97,6 +99,8 @@ export class MemStorage implements IStorage {
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
       dailyQuestCount: 0,
+      isVIP: false,
+      vipExpiresAt: null,
       createdAt: new Date(),
     };
     
@@ -372,6 +376,61 @@ export class MemStorage implements IStorage {
    */
   async updateUserRole(username: string, role: "user" | "admin" | "owner"): Promise<User | undefined> {
     return this.updateUser(username, { role });
+  }
+
+  /**
+   * Update a user's VIP status
+   * @param username The username of the user to update
+   * @param isVIP Whether the user should have VIP status
+   * @param durationDays Number of days the VIP status should last (default 7)
+   * @returns The updated user or undefined if not found
+   */
+  async updateVIPStatus(username: string, isVIP: boolean, durationDays: number = 7): Promise<User | undefined> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return undefined;
+    
+    let vipExpiresAt = null;
+    
+    if (isVIP) {
+      // Set VIP expiration date to now + durationDays
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + durationDays);
+      vipExpiresAt = expiryDate;
+    }
+    
+    return this.updateUser(username, { 
+      isVIP, 
+      vipExpiresAt 
+    });
+  }
+
+  /**
+   * Check and update a user's VIP status based on expiration date
+   * @param username The username of the user to check
+   * @returns Current VIP status after check
+   */
+  async checkAndUpdateVIPStatus(username: string): Promise<boolean> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return false;
+    
+    // If not a VIP, just return false
+    if (!user.isVIP) return false;
+    
+    // If VIP with no expiration date, keep as VIP
+    if (!user.vipExpiresAt) return true;
+    
+    // Check if VIP has expired
+    const now = new Date();
+    const expiryDate = new Date(user.vipExpiresAt);
+    
+    if (now > expiryDate) {
+      // VIP has expired, update user
+      await this.updateUser(username, { isVIP: false, vipExpiresAt: null });
+      return false;
+    }
+    
+    // VIP is still valid
+    return true;
   }
 
   /**

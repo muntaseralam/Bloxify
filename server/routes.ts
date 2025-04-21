@@ -79,25 +79,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
+      // Check VIP status (update if expired)
+      await storage.checkAndUpdateVIPStatus(username);
+
       // Reset quest state when user logs in
       const canCompleteToday = await storage.canUserCompleteQuestToday(username);
 
-      if (user) {
+      // Get the latest user after potential VIP status update
+      const updatedUser = await storage.getUserByUsername(username);
+      
+      if (updatedUser) {
         // Check daily quest count with null safety
-        const dailyQuestCount = user.dailyQuestCount ?? 0;
-
-        // If user has already completed their quests for today, just return the existing user
-        if (!canCompleteToday && dailyQuestCount >= 5) {
-          return res.json(user);
+        const dailyQuestCount = updatedUser.dailyQuestCount ?? 0;
+        const isVIP = updatedUser.isVIP || false;
+        
+        // If user has already completed their quests for today and they're not VIP, just return the existing user
+        // VIP users get unlimited daily quests
+        if (!canCompleteToday && dailyQuestCount >= 5 && !isVIP) {
+          return res.json(updatedUser);
         }
 
         // Otherwise, allow them to start fresh quests with game state reset
-        const updatedUser = await storage.updateUser(username, {
+        const refreshedUser = await storage.updateUser(username, {
           gameCompleted: false,
           adsWatched: 0
         });
 
-        return res.json(updatedUser || user);
+        return res.json(refreshedUser || updatedUser);
       }
 
       res.status(404).json({ message: "User not found" });
@@ -184,19 +192,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Check if user has the minimum token count required (10)
-      if ((user.tokenCount || 0) < 10) {
+      // First, check and update VIP status
+      await storage.checkAndUpdateVIPStatus(username);
+      
+      // Get fresh user data after VIP check
+      const updatedUser = await storage.getUserByUsername(username);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Determine minimum token requirement based on VIP status
+      const minTokensRequired = updatedUser.isVIP ? 1 : 10;
+
+      // Check if user has the minimum token count required
+      if ((updatedUser.tokenCount || 0) < minTokensRequired) {
         return res.status(400).json({ 
-          message: `You need at least 10 tokens to redeem. You currently have ${user.tokenCount || 0} tokens.`,
-          tokensNeeded: 10 - (user.tokenCount || 0)
+          message: `You need at least ${minTokensRequired} tokens to redeem. You currently have ${updatedUser.tokenCount || 0} tokens.`,
+          tokensNeeded: minTokensRequired - (updatedUser.tokenCount || 0),
+          isVIP: updatedUser.isVIP || false
         });
       }
 
       // If user already has a token that hasn't been redeemed, return it
-      if (user.token && !user.isTokenRedeemed) {
+      if (updatedUser.token && !updatedUser.isTokenRedeemed) {
         return res.json({ 
-          token: user.token,
-          message: "You already have an active redemption code."
+          token: updatedUser.token,
+          message: "You already have an active redemption code.",
+          isVIP: updatedUser.isVIP || false
         });
       }
 
@@ -207,13 +229,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUser(username, {
         token,
         isTokenRedeemed: false,
-        tokenCount: (user.tokenCount || 0) - 10 // Deduct 10 tokens for redemption
+        tokenCount: (updatedUser.tokenCount || 0) - minTokensRequired // Deduct tokens for redemption
       });
 
       res.json({ 
         token,
-        message: "Successfully generated redemption code for 10 tokens.",
-        remainingTokens: (user.tokenCount || 0) - 10
+        message: `Successfully generated redemption code for ${minTokensRequired} tokens.`,
+        remainingTokens: (updatedUser.tokenCount || 0) - minTokensRequired,
+        isVIP: updatedUser.isVIP || false
       });
     } catch (error) {
       console.error("Token generation error:", error);
@@ -410,6 +433,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update user VIP status (admin and owner only)
+  app.patch("/api/admin/users/:username/vip", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const { username } = req.params;
+      const { isVIP, durationDays } = req.body;
+      
+      // Input validation
+      if (typeof isVIP !== 'boolean') {
+        return res.status(400).json({ message: "isVIP parameter must be a boolean value" });
+      }
+      
+      if (durationDays !== undefined && (typeof durationDays !== 'number' || durationDays <= 0)) {
+        return res.status(400).json({ message: "durationDays must be a positive number" });
+      }
+      
+      // Get user before update
+      const userBeforeUpdate = await storage.getUserByUsername(username);
+      
+      if (!userBeforeUpdate) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Log the VIP status change
+      console.log(`Updating user ${username} VIP status from ${userBeforeUpdate.isVIP} to ${isVIP}${durationDays ? ` for ${durationDays} days` : ''}`);
+      
+      // Update the user's VIP status
+      const updatedUser = await storage.updateVIPStatus(username, isVIP, durationDays);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ 
+        message: `User ${username} VIP status updated to ${isVIP}${isVIP ? ` (expires: ${updatedUser.vipExpiresAt})` : ''}`,
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          isVIP: updatedUser.isVIP,
+          vipExpiresAt: updatedUser.vipExpiresAt
+        }
+      });
+    } catch (error) {
+      console.error("Error updating user VIP status:", error);
+      res.status(500).json({ message: "Failed to update user VIP status" });
+    }
+  });
+
   // Admin Statistics API Endpoints
   
   // Get statistics for today
