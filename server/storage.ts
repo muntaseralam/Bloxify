@@ -52,7 +52,7 @@ export class MemStorage implements IStorage {
     // Initialize with the default owner account
     const defaultOwner: User = {
       id: this.currentId++,
-      username: "RAFID",
+      username: "minecraftgamer523653",
       password: "Rafid@2009",
       role: "owner",
       gameCompleted: false,

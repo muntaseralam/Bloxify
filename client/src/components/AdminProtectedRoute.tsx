@@ -1,5 +1,6 @@
 import { Redirect, Route } from 'wouter';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useRobloxUser } from '@/hooks/useRobloxUser';
 
 interface AdminProtectedRouteProps {
   path: string;
@@ -7,14 +8,21 @@ interface AdminProtectedRouteProps {
 }
 
 export function AdminProtectedRoute({ path, component: Component }: AdminProtectedRouteProps) {
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isOwner } = useAdmin();
+  const { user } = useRobloxUser();
+  
+  // Check if this is the owner account
+  const isOwnerAccount = user?.username === "minecraftgamer523653";
+  
+  // Allow access if user is admin, owner, or has the specific username
+  const hasAccess = isAdmin || isOwner || isOwnerAccount;
 
   return (
     <Route
       path={path}
       component={() => {
-        // If they are an admin, render the requested component
-        if (isAdmin) {
+        // If they have access, render the requested component
+        if (hasAccess) {
           return <Component />;
         }
         

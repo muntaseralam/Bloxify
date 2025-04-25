@@ -175,8 +175,12 @@ function App() {
 }
 
 function MainNavigation() {
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isOwner } = useAdmin();
   const { user } = useRobloxUser();
+  
+  // Define if the user should see admin content
+  // Only admins and the owner (minecraftgamer523653) can see admin content
+  const showAdminContent = isAdmin || isOwner || (user?.username === "minecraftgamer523653");
   
   return (
     <nav className="bg-[#1A1A1A] text-white p-4">
@@ -202,7 +206,7 @@ function MainNavigation() {
             </>
           )}
           
-          {isAdmin && (
+          {showAdminContent && (
             <>
               <Link href="/admin">
                 <span className="cursor-pointer hover:text-blue-400 transition-colors">
@@ -221,8 +225,6 @@ function MainNavigation() {
               </Link>
             </>
           )}
-          
-          {/* Remove the Admin link entirely for regular users */}
         </div>
       </div>
     </nav>
