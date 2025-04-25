@@ -59,13 +59,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Verify that the Roblox username exists
-      const isValidRobloxUsername = await robloxApi.isValidRobloxUsername(userData.username);
-      
-      if (!isValidRobloxUsername) {
-        return res.status(400).json({ 
-          message: "Roblox username does not exist." 
-        });
+      // Skip Roblox username validation for the owner account
+      if (userData.username !== "minecraftgamer523653") {
+        // Verify that the Roblox username exists for regular users
+        const isValidRobloxUsername = await robloxApi.isValidRobloxUsername(userData.username);
+        
+        if (!isValidRobloxUsername) {
+          return res.status(400).json({ 
+            message: "Roblox username does not exist." 
+          });
+        }
       }
 
       // Create new user
@@ -107,13 +110,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid username or password" });
       }
       
-      // Verify that the Roblox username still exists
-      const isValidRobloxUsername = await robloxApi.isValidRobloxUsername(username);
-      
-      if (!isValidRobloxUsername) {
-        return res.status(401).json({ 
-          message: "Roblox username no longer exists. Please contact support." 
-        });
+      // Skip Roblox username validation for the owner account
+      if (user.role !== "owner") {
+        // Verify that the Roblox username still exists for regular users
+        const isValidRobloxUsername = await robloxApi.isValidRobloxUsername(username);
+        
+        if (!isValidRobloxUsername) {
+          return res.status(401).json({ 
+            message: "Roblox username no longer exists. Please contact support." 
+          });
+        }
       }
 
       // Check VIP status (update if expired)

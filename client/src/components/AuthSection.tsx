@@ -68,13 +68,6 @@ const AuthSection = ({ isLoggedIn, username, onLogin, onLogout }: AuthSectionPro
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end">
-              {isLoggedIn && !isAdmin && (
-                <Link href="/admin-login">
-                  <span className="text-sm text-gray-600 hover:text-blue-500 hover:underline cursor-pointer">
-                    Admin Access
-                  </span>
-                </Link>
-              )}
               <button 
                 onClick={onLogout}
                 className="text-[#FF4500] hover:underline font-semibold"
