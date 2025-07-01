@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, StatisticsResult } from "./storage";
-import { insertUserSchema, updateUserSchema, User, UserRole } from "@shared/schema";
+import { insertUserSchema, updateUserSchema, insertReferralSchema, updateReferralSchema, User, UserRole, Referral } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { robloxApi } from "./robloxApi";
@@ -858,6 +858,212 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to test Roblox API integration",
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // =================== REFERRAL SYSTEM API ENDPOINTS ===================
+
+  // Create a referral when a new player uses someone's referral code
+  app.post("/api/referrals/create", async (req, res) => {
+    try {
+      const { inviterUserId, inviteeUserId, inviterUsername, inviteeUsername, referralCode } = req.body;
+
+      // Validate required fields
+      if (!inviterUserId || !inviteeUserId || !inviterUsername || !inviteeUsername || !referralCode) {
+        return res.status(400).json({ 
+          message: "Missing required fields: inviterUserId, inviteeUserId, inviterUsername, inviteeUsername, referralCode" 
+        });
+      }
+
+      // Check if inviter exists by referral code
+      const inviter = await storage.getUserByReferralCode(referralCode);
+      if (!inviter) {
+        return res.status(404).json({ message: "Invalid referral code" });
+      }
+
+      // Verify inviter UserId matches
+      if (inviter.robloxUserId !== inviterUserId) {
+        return res.status(400).json({ message: "Inviter UserId mismatch" });
+      }
+
+      // Check if this invitee already has a referral record
+      const existingReferral = await storage.getReferralByInviteeUserId(inviteeUserId);
+      if (existingReferral) {
+        return res.status(409).json({ message: "Player has already been referred" });
+      }
+
+      // Create the referral record
+      const referral = await storage.createReferral({
+        inviterUserId,
+        inviteeUserId,
+        inviterUsername,
+        inviteeUsername,
+      });
+
+      // Update the invitee's user record with referral info
+      const invitee = await storage.getUserByRobloxUserId(inviteeUserId);
+      if (invitee) {
+        await storage.updateUser(invitee.username, { 
+          robloxUserId: inviteeUserId,
+          referredBy: referralCode 
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Referral created successfully",
+        referral: {
+          id: referral.id,
+          inviterUsername: referral.inviterUsername,
+          inviteeUsername: referral.inviteeUsername,
+          createdAt: referral.createdAt
+        }
+      });
+    } catch (error) {
+      console.error("Error creating referral:", error);
+      res.status(500).json({ message: "Failed to create referral" });
+    }
+  });
+
+  // Update invitee's token count and trigger payout logic
+  app.post("/api/referrals/update-tokens", async (req, res) => {
+    try {
+      const { inviteeUserId, newTokenCount } = req.body;
+
+      if (!inviteeUserId || newTokenCount === undefined) {
+        return res.status(400).json({ 
+          message: "Missing required fields: inviteeUserId, newTokenCount" 
+        });
+      }
+
+      // Process referral payouts
+      const payoutResult = await storage.processReferralPayout(inviteeUserId, newTokenCount);
+
+      res.json({
+        success: true,
+        message: "Token count updated and payouts processed",
+        payouts: {
+          regularPayout: payoutResult.regularPayout,
+          vipPayout: payoutResult.vipPayout,
+          inviterUsername: payoutResult.inviterUsername
+        }
+      });
+    } catch (error) {
+      console.error("Error updating tokens and processing payouts:", error);
+      res.status(500).json({ message: "Failed to update tokens and process payouts" });
+    }
+  });
+
+  // Generate or get referral code for a user
+  app.post("/api/referrals/generate-code", async (req, res) => {
+    try {
+      const { username, robloxUserId } = req.body;
+
+      if (!username || !robloxUserId) {
+        return res.status(400).json({ 
+          message: "Missing required fields: username, robloxUserId" 
+        });
+      }
+
+      // Get or create user
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user with Roblox UserId if not set
+      if (!user.robloxUserId) {
+        await storage.updateUser(username, { robloxUserId });
+        user = await storage.getUserByUsername(username);
+      }
+
+      // Generate referral code if user doesn't have one
+      let referralCode = user?.referralCode;
+      if (!referralCode) {
+        referralCode = await storage.generateReferralCode(username);
+      }
+
+      res.json({
+        success: true,
+        referralCode,
+        message: "Referral code generated successfully"
+      });
+    } catch (error) {
+      console.error("Error generating referral code:", error);
+      res.status(500).json({ message: "Failed to generate referral code" });
+    }
+  });
+
+  // Get referral statistics for a user
+  app.get("/api/referrals/stats/:robloxUserId", async (req, res) => {
+    try {
+      const robloxUserId = parseInt(req.params.robloxUserId);
+
+      if (isNaN(robloxUserId)) {
+        return res.status(400).json({ message: "Invalid Roblox UserId" });
+      }
+
+      const user = await storage.getUserByRobloxUserId(robloxUserId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get referral stats if this user is an invitee
+      const referralAsInvitee = await storage.getReferralByInviteeUserId(robloxUserId);
+
+      // Count referrals where this user is the inviter
+      const allReferrals = Array.from((storage as any).referrals.values()) as any[];
+      const referralsAsInviter = allReferrals.filter(r => r.inviterUserId === robloxUserId);
+
+      res.json({
+        success: true,
+        user: {
+          username: user.username,
+          robloxUserId: user.robloxUserId,
+          referralCode: user.referralCode,
+          isVIP: user.isVIP
+        },
+        referralStats: {
+          asInvitee: referralAsInvitee ? {
+            inviterUsername: referralAsInvitee.inviterUsername,
+            totalTokensEarned: referralAsInvitee.totalTokensEarnedByInvitee,
+            regularPaymentMade: referralAsInvitee.regularPaymentMade
+          } : null,
+          asInviter: {
+            totalReferrals: referralsAsInviter.length,
+            totalTokensEarnedByReferrals: referralsAsInviter.reduce((sum, r) => sum + r.totalTokensEarnedByInvitee, 0),
+            totalRegularPayouts: referralsAsInviter.filter(r => r.regularPaymentMade).length,
+            totalVIPPayouts: referralsAsInviter.reduce((sum, r) => sum + r.vipTokensPaidOut, 0)
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ message: "Failed to fetch referral statistics" });
+    }
+  });
+
+  // Process manual payout (admin endpoint)
+  app.post("/api/admin/referrals/process-payout", requireRole(["admin", "owner"]), async (req, res) => {
+    try {
+      const { inviteeUserId, tokenCount } = req.body;
+
+      if (!inviteeUserId || !tokenCount) {
+        return res.status(400).json({ 
+          message: "Missing required fields: inviteeUserId, tokenCount" 
+        });
+      }
+
+      const payoutResult = await storage.processReferralPayout(inviteeUserId, tokenCount);
+
+      res.json({
+        success: true,
+        message: "Manual payout processed successfully",
+        payouts: payoutResult
+      });
+    } catch (error) {
+      console.error("Error processing manual payout:", error);
+      res.status(500).json({ message: "Failed to process manual payout" });
     }
   });
 

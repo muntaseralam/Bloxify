@@ -1,4 +1,4 @@
-import { users, type User, type InsertUser, type UpdateUser } from "@shared/schema";
+import { users, referrals, type User, type InsertUser, type UpdateUser, type Referral, type InsertReferral, type UpdateReferral } from "@shared/schema";
 
 export interface StatisticsResult {
   totalAdsWatched: number;
@@ -37,17 +37,34 @@ export interface IStorage {
   getUserRegistrationsForDate(date: Date): Promise<UserRegistrationStats>;
   getUserRegistrationsForMonth(year: number, month: number): Promise<UserRegistrationStats>;
   getUserRegistrationsForYear(year: number): Promise<UserRegistrationStats>;
+  
+  // Referral system methods
+  getUserByRobloxUserId(robloxUserId: number): Promise<User | undefined>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  getReferralByInviteeUserId(inviteeUserId: number): Promise<Referral | undefined>;
+  updateReferral(inviteeUserId: number, data: Partial<UpdateReferral>): Promise<Referral | undefined>;
+  generateReferralCode(username: string): Promise<string>;
+  getUserByReferralCode(referralCode: string): Promise<User | undefined>;
+  processReferralPayout(inviteeUserId: number, newTokenCount: number): Promise<{ regularPayout: boolean; vipPayout: number; inviterUsername?: string }>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private usersByUsername: Map<string, User>;
+  private referrals: Map<number, Referral>; // keyed by inviteeUserId
+  private usersByRobloxId: Map<number, User>;
+  private usersByReferralCode: Map<string, User>;
   currentId: number;
+  currentReferralId: number;
 
   constructor() {
     this.users = new Map();
     this.usersByUsername = new Map();
+    this.referrals = new Map();
+    this.usersByRobloxId = new Map();
+    this.usersByReferralCode = new Map();
     this.currentId = 1;
+    this.currentReferralId = 1;
     
     // Initialize with the default owner account
     const defaultOwner: User = {
@@ -65,6 +82,9 @@ export class MemStorage implements IStorage {
       isVIP: true,
       vipExpiresAt: null, // Owner has permanent VIP
       createdAt: new Date(),
+      robloxUserId: null,
+      referralCode: null,
+      referredBy: null,
     };
     
     this.users.set(defaultOwner.id, defaultOwner);
@@ -102,6 +122,9 @@ export class MemStorage implements IStorage {
       isVIP: false,
       vipExpiresAt: null,
       createdAt: new Date(),
+      robloxUserId: null,
+      referralCode: null,
+      referredBy: null,
     };
     
     this.users.set(id, user);
@@ -113,9 +136,28 @@ export class MemStorage implements IStorage {
     const user = await this.getUserByUsername(username);
     if (!user) return undefined;
 
+    // Remove old entries from lookup maps if they're being updated
+    if (user.robloxUserId && data.robloxUserId !== undefined) {
+      this.usersByRobloxId.delete(user.robloxUserId);
+    }
+    if (user.referralCode && data.referralCode !== undefined) {
+      this.usersByReferralCode.delete(user.referralCode);
+    }
+
     const updatedUser = { ...user, ...data };
+    
+    // Update all lookup maps
     this.users.set(user.id, updatedUser);
     this.usersByUsername.set(username, updatedUser);
+    
+    // Add new entries to lookup maps
+    if (updatedUser.robloxUserId) {
+      this.usersByRobloxId.set(updatedUser.robloxUserId, updatedUser);
+    }
+    if (updatedUser.referralCode) {
+      this.usersByReferralCode.set(updatedUser.referralCode, updatedUser);
+    }
+    
     return updatedUser;
   }
 
@@ -449,6 +491,151 @@ export class MemStorage implements IStorage {
    */
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.usersByUsername.values());
+  }
+
+  // =================== REFERRAL SYSTEM METHODS ===================
+
+  /**
+   * Get a user by their Roblox UserId
+   */
+  async getUserByRobloxUserId(robloxUserId: number): Promise<User | undefined> {
+    return this.usersByRobloxId.get(robloxUserId);
+  }
+
+  /**
+   * Create a new referral relationship
+   */
+  async createReferral(referralData: InsertReferral): Promise<Referral> {
+    const referral: Referral = {
+      id: this.currentReferralId++,
+      inviterUserId: referralData.inviterUserId,
+      inviteeUserId: referralData.inviteeUserId,
+      inviterUsername: referralData.inviterUsername,
+      inviteeUsername: referralData.inviteeUsername,
+      totalTokensEarnedByInvitee: 0,
+      regularPaymentMade: false,
+      vipTokensPaidOut: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.referrals.set(referralData.inviteeUserId, referral);
+    return referral;
+  }
+
+  /**
+   * Get referral data by invitee's Roblox UserId
+   */
+  async getReferralByInviteeUserId(inviteeUserId: number): Promise<Referral | undefined> {
+    return this.referrals.get(inviteeUserId);
+  }
+
+  /**
+   * Update referral data
+   */
+  async updateReferral(inviteeUserId: number, data: Partial<UpdateReferral>): Promise<Referral | undefined> {
+    const referral = this.referrals.get(inviteeUserId);
+    if (!referral) return undefined;
+
+    const updatedReferral: Referral = {
+      ...referral,
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    this.referrals.set(inviteeUserId, updatedReferral);
+    return updatedReferral;
+  }
+
+  /**
+   * Generate a unique referral code for a user
+   */
+  async generateReferralCode(username: string): Promise<string> {
+    let referralCode: string;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      referralCode = `${username.toUpperCase()}-${this.generateRandomString(4)}`;
+      attempts++;
+    } while (this.usersByReferralCode.has(referralCode) && attempts < maxAttempts);
+
+    if (attempts >= maxAttempts) {
+      // Fallback to timestamp-based code
+      referralCode = `${username.toUpperCase()}-${Date.now().toString().slice(-6)}`;
+    }
+
+    // Update user with referral code
+    const user = await this.getUserByUsername(username);
+    if (user) {
+      const updatedUser = await this.updateUser(username, { referralCode });
+      if (updatedUser?.referralCode) {
+        this.usersByReferralCode.set(updatedUser.referralCode, updatedUser);
+      }
+    }
+
+    return referralCode;
+  }
+
+  /**
+   * Get user by their referral code
+   */
+  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
+    return this.usersByReferralCode.get(referralCode);
+  }
+
+  /**
+   * Process referral payouts based on invitee's token earnings
+   * Returns information about payouts made
+   */
+  async processReferralPayout(inviteeUserId: number, newTokenCount: number): Promise<{ regularPayout: boolean; vipPayout: number; inviterUsername?: string }> {
+    const referral = await this.getReferralByInviteeUserId(inviteeUserId);
+    if (!referral) {
+      return { regularPayout: false, vipPayout: 0 };
+    }
+
+    const inviter = await this.getUserByRobloxUserId(referral.inviterUserId);
+    if (!inviter) {
+      return { regularPayout: false, vipPayout: 0 };
+    }
+
+    let regularPayout = false;
+    let vipPayout = 0;
+
+    // Update total tokens earned by invitee
+    const totalTokensEarned = newTokenCount;
+    await this.updateReferral(inviteeUserId, { totalTokensEarnedByInvitee: totalTokensEarned });
+
+    // Regular payout: 1 token when invitee redeems 10 tokens (only once)
+    if (!referral.regularPaymentMade && totalTokensEarned >= 10) {
+      await this.updateUser(inviter.username, { 
+        tokenCount: (inviter.tokenCount || 0) + 1 
+      });
+      await this.updateReferral(inviteeUserId, { regularPaymentMade: true });
+      regularPayout = true;
+    }
+
+    // VIP payout: 1 token for every 20 tokens earned by invitee (repeatable)
+    if (inviter.isVIP) {
+      const totalPossibleVIPPayouts = Math.floor(totalTokensEarned / 20);
+      const unpaidVIPPayouts = totalPossibleVIPPayouts - referral.vipTokensPaidOut;
+      
+      if (unpaidVIPPayouts > 0) {
+        await this.updateUser(inviter.username, { 
+          tokenCount: (inviter.tokenCount || 0) + unpaidVIPPayouts 
+        });
+        await this.updateReferral(inviteeUserId, { 
+          vipTokensPaidOut: totalPossibleVIPPayouts 
+        });
+        vipPayout = unpaidVIPPayouts;
+      }
+    }
+
+    return { 
+      regularPayout, 
+      vipPayout, 
+      inviterUsername: inviter.username 
+    };
   }
 }
 
