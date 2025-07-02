@@ -168,15 +168,7 @@ export function useGameProgress(username: string | undefined) {
       const userData = await userResponse.json();
       setTokenCount(userData.tokenCount || 0);
       
-      // Only proceed if user has enough tokens
-      if ((userData.tokenCount || 0) < 10) {
-        toast({
-          title: "Not Enough Tokens",
-          description: `You need at least 10 tokens to generate a code. You currently have ${userData.tokenCount || 0}.`,
-          variant: "destructive",
-        });
-        return;
-      }
+      // Backend will handle VIP vs regular token requirements, so we remove the frontend check
       
       // Now try to generate the token
       const response = await apiRequest("POST", `/api/users/${username}/token`, {});
