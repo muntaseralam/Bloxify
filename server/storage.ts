@@ -169,11 +169,22 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
+    // Check if user has enough tokens for redemption
+    const requiredTokens = user.isVIP ? 1 : 10;
+    if (user.tokenCount < requiredTokens) {
+      return undefined;
+    }
+    
     // Generate a unique token
     const token = `BLOX-${this.generateRandomString(4)}-${this.generateRandomString(4)}-${this.generateRandomString(4)}`;
     
-    // Update the user with the token
-    await this.updateUser(username, { token });
+    // Deduct the required tokens and update the user with the token
+    const newTokenCount = user.tokenCount - requiredTokens;
+    await this.updateUser(username, { 
+      token,
+      tokenCount: newTokenCount,
+      isTokenRedeemed: true 
+    });
     
     return token;
   }

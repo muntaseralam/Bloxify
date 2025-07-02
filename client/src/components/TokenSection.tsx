@@ -114,7 +114,7 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
         </div>
         
         <div className="bg-white p-6 rounded-lg text-center">
-          {tokenCount >= 10 ? (
+          {(isVIP && tokenCount >= 1) || (!isVIP && tokenCount >= 10) ? (
             // Redemption UI when user has enough tokens
             <>
               <div className="w-20 h-20 mx-auto bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4">
@@ -158,7 +158,8 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                   <div className="mt-4 bg-green-100 p-3 rounded-lg text-green-800 border border-green-300">
                     <p className="flex items-center">
                       <i className="fas fa-info-circle mr-2"></i>
-                      <span className="text-sm">10 tokens were deducted from your balance for this redemption code.</span>
+                      <span className="text-sm">{isVIP ? '1 token was' : '10 tokens were'} deducted from your balance for this redemption code.</span>
+                      {isVIP && <Crown className="inline w-4 h-4 ml-2" />}
                     </p>
                   </div>
                 </>
@@ -173,7 +174,8 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                   <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
                     <p className="text-sm text-yellow-800 mb-2">
                       <i className="fas fa-info-circle mr-1"></i> 
-                      You have {tokenCount} tokens. Generating a code will use 10 tokens.
+                      You have {tokenCount} tokens. Generating a code will use {isVIP ? '1 token' : '10 tokens'}.
+                      {isVIP && <span className="block mt-1"><Crown className="inline w-4 h-4 mr-1" />VIP Benefit: Only 1 token required!</span>}
                     </p>
                   </div>
                   
@@ -195,27 +197,29 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
               
               <h4 className="text-xl font-bold mb-2">Keep Collecting Tokens!</h4>
               <p className="text-sm text-gray-600 mb-4">
-                You need 10 tokens to redeem for a Blux code. You have {tokenCount} so far.
+                You need {isVIP ? '1 token' : '10 tokens'} to redeem for a Blux code. You have {tokenCount} so far.
+                {isVIP && <span className="block mt-1 text-yellow-600 font-medium"><Crown className="inline w-4 h-4 mr-1" />VIP users only need 1 token!</span>}
               </p>
               
               <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
                 <div className="flex justify-between mb-1">
                   <span className="text-sm font-medium">Redemption Progress</span>
-                  <span className="text-sm font-medium">{tokenCount}/10</span>
+                  <span className="text-sm font-medium">{tokenCount}/{isVIP ? '1' : '10'}</span>
                 </div>
                 <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-blue-500 transition-all duration-500 ease-in-out"
-                    style={{ width: `${Math.min((tokenCount / 10) * 100, 100)}%` }}
+                    style={{ width: `${Math.min((tokenCount / (isVIP ? 1 : 10)) * 100, 100)}%` }}
                   ></div>
                 </div>
                 <p className="text-xs mt-2 text-gray-600">
                   Complete daily quests to earn tokens. Each quest earns you 1 token.
+                  {isVIP && <span className="block mt-1 text-yellow-600"><Crown className="inline w-3 h-3 mr-1" />VIP: Unlimited quests per day!</span>}
                 </p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {dailyQuestCount < 5 && onStartNewQuest ? (
+                {(isVIP || dailyQuestCount < 5) && onStartNewQuest ? (
                   <Button 
                     className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
                     onClick={onStartNewQuest}
@@ -227,7 +231,7 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                   <Button 
                     className="game-button bg-[#00A2FF] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-blue-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
                     onClick={() => {
-                      if (dailyQuestCount >= 5) {
+                      if (!isVIP && dailyQuestCount >= 5) {
                         toast({
                           title: "Daily Quest Limit",
                           description: "You've completed all your quests for today. Come back tomorrow for more!",
@@ -242,7 +246,7 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                     }}
                   >
                     <i className="fas fa-redo-alt mr-2"></i> 
-                    {dailyQuestCount >= 5 ? "Return Tomorrow" : "Refresh Page"}
+                    {!isVIP && dailyQuestCount >= 5 ? "Return Tomorrow" : "Refresh Page"}
                   </Button>
                 )}
               </div>
