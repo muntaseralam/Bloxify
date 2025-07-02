@@ -114,7 +114,7 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
         </div>
         
         <div className="bg-white p-6 rounded-lg text-center">
-          {(isVIP && tokenCount >= 1) || (!isVIP && tokenCount >= 10) ? (
+          {token || (isVIP && tokenCount >= 1) || (!isVIP && tokenCount >= 10) ? (
             // Redemption UI when user has enough tokens
             <>
               <div className="w-20 h-20 mx-auto bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4">

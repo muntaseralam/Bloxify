@@ -208,6 +208,9 @@ export function useGameProgress(username: string | undefined) {
       // Refresh user data to ensure sync
       await refreshUserData();
       
+      // Force UI update to show step 3 (token section)
+      setCurrentStep(3);
+      
       toast({
         title: "Redemption Code Generated!",
         description: data.message || "Your redemption code has been created successfully",
