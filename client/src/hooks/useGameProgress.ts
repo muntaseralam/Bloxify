@@ -39,8 +39,10 @@ export function useGameProgress(username: string | undefined) {
         
         // Determine current step based on user progress
         let step = 0;
-        if (userData.gameCompleted && userData.adsWatched >= totalAds && userData.token) {
-          step = 3; // Token generation
+        if (userData.token) {
+          step = 3; // Token generation - user has a token ready to redeem
+        } else if (userData.gameCompleted && userData.adsWatched >= totalAds) {
+          step = 3; // Can generate token
         } else if (userData.gameCompleted) {
           step = 2; // Ad viewing
         } else if (userData.id) {
@@ -203,6 +205,9 @@ export function useGameProgress(username: string | undefined) {
       setToken(data.token);
       setTokenCount(data.remainingTokens || 0);
       
+      // Refresh user data to ensure sync
+      await refreshUserData();
+      
       toast({
         title: "Redemption Code Generated!",
         description: data.message || "Your redemption code has been created successfully",
@@ -217,6 +222,38 @@ export function useGameProgress(username: string | undefined) {
     }
   }, [username, toast]);
 
+  // Function to refresh user data
+  const refreshUserData = useCallback(async () => {
+    if (!username) return;
+    
+    try {
+      const response = await fetch(`/api/users/${username}`);
+      if (!response.ok) return;
+      
+      const userData = await response.json();
+      setTokenCount(userData.tokenCount || 0);
+      setGameCompleted(userData.gameCompleted);
+      setAdsWatched(userData.adsWatched);
+      setToken(userData.token);
+      setDailyQuestCount(userData.dailyQuestCount || 0);
+      
+      // Update current step based on new data
+      let step = 0;
+      if (userData.token) {
+        step = 3; // Token generation - user has a token ready to redeem
+      } else if (userData.gameCompleted && userData.adsWatched >= totalAds) {
+        step = 3; // Can generate token
+      } else if (userData.gameCompleted) {
+        step = 2; // Ad viewing
+      } else if (userData.id && (userData.adsWatched > 0 || userData.gameCompleted)) {
+        step = 1; // Continue minigame
+      }
+      setCurrentStep(step);
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
+    }
+  }, [username, totalAds]);
+
   return {
     currentStep,
     gameCompleted,
@@ -227,6 +264,7 @@ export function useGameProgress(username: string | undefined) {
     dailyQuestCount,
     updateGameStatus,
     incrementAdCount,
-    generateToken
+    generateToken,
+    refreshUserData
   };
 }
