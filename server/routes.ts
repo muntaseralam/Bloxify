@@ -270,14 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // If user already has a token that hasn't been redeemed, return it
-      if (updatedUser.token && !updatedUser.isTokenRedeemed) {
-        return res.json({ 
-          token: updatedUser.token,
-          message: "You already have an active redemption code.",
-          isVIP: updatedUser.isVIP || false
-        });
-      }
+      // Always generate a new token (removed the check for existing unredeemed tokens)
 
       // Generate a unique token
       const token = `BLUX-${storage.generateRandomString(4)}-${storage.generateRandomString(4)}-${storage.generateRandomString(4)}`;
