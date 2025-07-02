@@ -153,6 +153,15 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                         <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
                       </Button>
                     </Link>
+                    
+                    {onStartNewQuest && (
+                      <Button 
+                        onClick={onStartNewQuest}
+                        className="game-button bg-[#FF6B35] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-orange-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
+                      >
+                        <i className="fas fa-play mr-2"></i> Start Earning Again
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="mt-4 bg-green-100 p-3 rounded-lg text-green-800 border border-green-300">
