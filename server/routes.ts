@@ -275,6 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a unique token
       const token = `BLUX-${storage.generateRandomString(4)}-${storage.generateRandomString(4)}-${storage.generateRandomString(4)}`;
 
+      // Create redemption code entry
+      await storage.createRedemptionCode({
+        code: token,
+        tokens: minTokensRequired,
+        createdBy: username
+      });
+
       // Update user with the redemption token and reset token count
       await storage.updateUser(username, {
         token,
@@ -291,6 +298,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Token generation error:", error);
       res.status(500).json({ message: "Failed to generate token" });
+    }
+  });
+
+  // Redeem code endpoint for Roblox integration
+  app.post("/api/redeem_code", async (req, res) => {
+    try {
+      const { userId, code } = req.body;
+
+      // Validate input
+      if (!userId || !code) {
+        return res.status(200).json({
+          success: false,
+          message: "Invalid or already redeemed code."
+        });
+      }
+
+      // Validate userId is a number
+      if (typeof userId !== 'number') {
+        return res.status(200).json({
+          success: false,
+          message: "Invalid or already redeemed code."
+        });
+      }
+
+      // Attempt to redeem the code
+      const result = await storage.redeemCode(code, userId);
+
+      // Return result (always status 200 for Roblox compatibility)
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Code redemption error:", error);
+      res.status(200).json({
+        success: false,
+        message: "Invalid or already redeemed code."
+      });
     }
   });
 

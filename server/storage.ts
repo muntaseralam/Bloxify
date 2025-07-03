@@ -1,4 +1,4 @@
-import { users, referrals, type User, type InsertUser, type UpdateUser, type Referral, type InsertReferral, type UpdateReferral } from "@shared/schema";
+import { users, referrals, redemptionCodes, type User, type InsertUser, type UpdateUser, type Referral, type InsertReferral, type UpdateReferral, type RedemptionCode, type InsertRedemptionCode, type UpdateRedemptionCode } from "@shared/schema";
 
 export interface StatisticsResult {
   totalAdsWatched: number;
@@ -46,6 +46,11 @@ export interface IStorage {
   generateReferralCode(username: string): Promise<string>;
   getUserByReferralCode(referralCode: string): Promise<User | undefined>;
   processReferralPayout(inviteeUserId: number, newTokenCount: number): Promise<{ regularPayout: boolean; vipPayout: number; inviterUsername?: string }>;
+  
+  // Redemption code methods for Roblox integration
+  createRedemptionCode(code: InsertRedemptionCode): Promise<RedemptionCode>;
+  getRedemptionCodeByCode(code: string): Promise<RedemptionCode | undefined>;
+  redeemCode(code: string, robloxUserId: number): Promise<{ success: boolean; message: string; tokens?: number }>;
 }
 
 export class MemStorage implements IStorage {
@@ -54,8 +59,10 @@ export class MemStorage implements IStorage {
   private referrals: Map<number, Referral>; // keyed by inviteeUserId
   private usersByRobloxId: Map<number, User>;
   private usersByReferralCode: Map<string, User>;
+  private redemptionCodes: Map<string, RedemptionCode>; // keyed by code
   currentId: number;
   currentReferralId: number;
+  currentRedemptionCodeId: number;
 
   constructor() {
     this.users = new Map();
@@ -63,8 +70,10 @@ export class MemStorage implements IStorage {
     this.referrals = new Map();
     this.usersByRobloxId = new Map();
     this.usersByReferralCode = new Map();
+    this.redemptionCodes = new Map();
     this.currentId = 1;
     this.currentReferralId = 1;
+    this.currentRedemptionCodeId = 1;
     
     // Initialize with the default owner account
     const defaultOwner: User = {
@@ -176,7 +185,14 @@ export class MemStorage implements IStorage {
     }
     
     // Generate a unique token
-    const token = `BLOX-${this.generateRandomString(4)}-${this.generateRandomString(4)}-${this.generateRandomString(4)}`;
+    const token = `BLUX-${this.generateRandomString(4)}-${this.generateRandomString(4)}-${this.generateRandomString(4)}`;
+    
+    // Create redemption code entry
+    await this.createRedemptionCode({
+      code: token,
+      tokens: requiredTokens,
+      createdBy: username
+    });
     
     // Deduct the required tokens and update the user with the token
     const newTokenCount = user.tokenCount - requiredTokens;
@@ -646,6 +662,67 @@ export class MemStorage implements IStorage {
       regularPayout, 
       vipPayout, 
       inviterUsername: inviter.username 
+    };
+  }
+
+  /**
+   * Create a new redemption code
+   */
+  async createRedemptionCode(codeData: InsertRedemptionCode): Promise<RedemptionCode> {
+    const code: RedemptionCode = {
+      id: this.currentRedemptionCodeId++,
+      code: codeData.code,
+      tokens: codeData.tokens,
+      createdBy: codeData.createdBy,
+      createdAt: new Date(),
+      redeemedBy: null,
+      redeemedAt: null,
+      isRedeemed: false,
+    };
+
+    this.redemptionCodes.set(code.code, code);
+    return code;
+  }
+
+  /**
+   * Get a redemption code by its code string
+   */
+  async getRedemptionCodeByCode(code: string): Promise<RedemptionCode | undefined> {
+    return this.redemptionCodes.get(code);
+  }
+
+  /**
+   * Redeem a code for a Roblox user
+   */
+  async redeemCode(code: string, robloxUserId: number): Promise<{ success: boolean; message: string; tokens?: number }> {
+    const redemptionCode = await this.getRedemptionCodeByCode(code);
+    
+    if (!redemptionCode) {
+      return {
+        success: false,
+        message: "Invalid or already redeemed code."
+      };
+    }
+
+    if (redemptionCode.isRedeemed) {
+      return {
+        success: false,
+        message: "Invalid or already redeemed code."
+      };
+    }
+
+    // Mark the code as redeemed
+    redemptionCode.isRedeemed = true;
+    redemptionCode.redeemedBy = robloxUserId;
+    redemptionCode.redeemedAt = new Date();
+
+    // Update the code in storage
+    this.redemptionCodes.set(code, redemptionCode);
+
+    return {
+      success: true,
+      message: "Code redeemed successfully!",
+      tokens: redemptionCode.tokens
     };
   }
 }

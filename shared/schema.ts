@@ -40,6 +40,18 @@ export const referrals = pgTable("referrals", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Redemption codes table for Roblox integration
+export const redemptionCodes = pgTable("redemption_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(), // The redemption code (e.g., "BLUX-R5DE-CKEJ-OK8V")
+  tokens: integer("tokens").notNull(), // Amount of tokens this code is worth
+  createdBy: text("created_by").notNull(), // Username of the user who generated this code
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  redeemedBy: integer("redeemed_by"), // Roblox UserId of the user who redeemed this code
+  redeemedAt: timestamp("redeemed_at"), // When the code was redeemed
+  isRedeemed: boolean("is_redeemed").default(false).notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -78,9 +90,24 @@ export const updateReferralSchema = createInsertSchema(referrals).pick({
   vipTokensPaidOut: true,
 });
 
+export const insertRedemptionCodeSchema = createInsertSchema(redemptionCodes).pick({
+  code: true,
+  tokens: true,
+  createdBy: true,
+});
+
+export const updateRedemptionCodeSchema = createInsertSchema(redemptionCodes).pick({
+  redeemedBy: true,
+  redeemedAt: true,
+  isRedeemed: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type UpdateReferral = z.infer<typeof updateReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
+export type InsertRedemptionCode = z.infer<typeof insertRedemptionCodeSchema>;
+export type UpdateRedemptionCode = z.infer<typeof updateRedemptionCodeSchema>;
+export type RedemptionCode = typeof redemptionCodes.$inferSelect;
