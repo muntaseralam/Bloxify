@@ -279,7 +279,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createRedemptionCode({
         code: token,
         tokens: minTokensRequired,
-        createdBy: username
+        createdBy: username,
+        createdByRobloxId: updatedUser.robloxUserId
       });
 
       // Update user with the redemption token and reset token count
@@ -332,6 +333,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({
         success: false,
         message: "Invalid or already redeemed code."
+      });
+    }
+  });
+
+  // Get user's in-game token balance by Roblox UserId
+  app.get("/api/roblox/balance/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(200).json({
+          success: false,
+          message: "Invalid user ID.",
+          balance: 0
+        });
+      }
+
+      const user = await storage.getUserByRobloxUserId(userId);
+      
+      if (!user) {
+        return res.status(200).json({
+          success: false,
+          message: "User not found.",
+          balance: 0
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        balance: user.inGameTokenBalance || 0,
+        username: user.username
+      });
+    } catch (error) {
+      console.error("Balance retrieval error:", error);
+      res.status(200).json({
+        success: false,
+        message: "Failed to retrieve balance.",
+        balance: 0
+      });
+    }
+  });
+
+  // Spend tokens from user's in-game balance
+  app.post("/api/roblox/spend", async (req, res) => {
+    try {
+      const { userId, amount } = req.body;
+
+      // Validate input
+      if (!userId || !amount || typeof userId !== 'number' || typeof amount !== 'number' || amount <= 0) {
+        return res.status(200).json({
+          success: false,
+          message: "Invalid parameters.",
+          newBalance: 0
+        });
+      }
+
+      const user = await storage.getUserByRobloxUserId(userId);
+      
+      if (!user) {
+        return res.status(200).json({
+          success: false,
+          message: "User not found.",
+          newBalance: 0
+        });
+      }
+
+      const currentBalance = user.inGameTokenBalance || 0;
+      
+      if (currentBalance < amount) {
+        return res.status(200).json({
+          success: false,
+          message: "Insufficient balance.",
+          newBalance: currentBalance
+        });
+      }
+
+      // Deduct tokens from in-game balance
+      const newBalance = currentBalance - amount;
+      await storage.updateUser(user.username, {
+        inGameTokenBalance: newBalance
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Successfully spent ${amount} tokens.`,
+        newBalance: newBalance
+      });
+    } catch (error) {
+      console.error("Token spending error:", error);
+      res.status(200).json({
+        success: false,
+        message: "Failed to spend tokens.",
+        newBalance: 0
       });
     }
   });

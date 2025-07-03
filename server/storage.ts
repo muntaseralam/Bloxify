@@ -84,6 +84,7 @@ export class MemStorage implements IStorage {
       gameCompleted: false,
       adsWatched: 0,
       tokenCount: 0,
+      inGameTokenBalance: 0,
       token: null,
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
@@ -124,6 +125,7 @@ export class MemStorage implements IStorage {
       gameCompleted: false,
       adsWatched: 0,
       tokenCount: 0,
+      inGameTokenBalance: 0,
       token: null,
       isTokenRedeemed: false,
       lastQuestCompletedAt: null,
@@ -674,6 +676,7 @@ export class MemStorage implements IStorage {
       code: codeData.code,
       tokens: codeData.tokens,
       createdBy: codeData.createdBy,
+      createdByRobloxId: codeData.createdByRobloxId || null,
       createdAt: new Date(),
       redeemedBy: null,
       redeemedAt: null,
@@ -709,6 +712,26 @@ export class MemStorage implements IStorage {
         success: false,
         message: "Invalid or already redeemed code."
       };
+    }
+
+    // Find the user who created this code to deduct tokens from their website balance
+    const creator = await this.getUserByUsername(redemptionCode.createdBy);
+    if (creator) {
+      // Deduct tokens from creator's website balance (if they have enough)
+      if (creator.tokenCount >= redemptionCode.tokens) {
+        await this.updateUser(creator.username, {
+          tokenCount: creator.tokenCount - redemptionCode.tokens
+        });
+      }
+    }
+
+    // Find the redeemer to add tokens to their in-game balance
+    const redeemer = await this.getUserByRobloxUserId(robloxUserId);
+    if (redeemer) {
+      // Add tokens to redeemer's in-game balance
+      await this.updateUser(redeemer.username, {
+        inGameTokenBalance: (redeemer.inGameTokenBalance || 0) + redemptionCode.tokens
+      });
     }
 
     // Mark the code as redeemed

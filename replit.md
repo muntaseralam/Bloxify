@@ -121,6 +121,7 @@ Bloxify is a full-stack web application that allows users to earn tokens by comp
 - Environment-specific configurations
 
 ## Changelog
+- July 03, 2025: Implemented complete token transfer system - website tokens deducted when codes redeemed in-game, with full balance management
 - July 03, 2025: Implemented complete Roblox code redemption system with database tracking
 - July 02, 2025: Initial setup
 

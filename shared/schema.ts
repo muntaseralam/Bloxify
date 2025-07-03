@@ -12,7 +12,8 @@ export const users = pgTable("users", {
   role: text("role").default("user").notNull(),
   gameCompleted: boolean("game_completed").default(false).notNull(),
   adsWatched: integer("ads_watched").default(0).notNull(),
-  tokenCount: integer("token_count").default(0).notNull(),
+  tokenCount: integer("token_count").default(0).notNull(), // Website token balance
+  inGameTokenBalance: integer("in_game_token_balance").default(0).notNull(), // Roblox game token balance  
   token: text("token"),
   isTokenRedeemed: boolean("is_token_redeemed").default(false),
   lastQuestCompletedAt: timestamp("last_quest_completed_at"),
@@ -46,6 +47,7 @@ export const redemptionCodes = pgTable("redemption_codes", {
   code: text("code").notNull().unique(), // The redemption code (e.g., "BLUX-R5DE-CKEJ-OK8V")
   tokens: integer("tokens").notNull(), // Amount of tokens this code is worth
   createdBy: text("created_by").notNull(), // Username of the user who generated this code
+  createdByRobloxId: integer("created_by_roblox_id"), // Roblox UserId of the creator (for balance transfer)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   redeemedBy: integer("redeemed_by"), // Roblox UserId of the user who redeemed this code
   redeemedAt: timestamp("redeemed_at"), // When the code was redeemed
@@ -65,6 +67,7 @@ export const updateUserSchema = createInsertSchema(users).pick({
   gameCompleted: true,
   adsWatched: true,
   tokenCount: true,
+  inGameTokenBalance: true,
   token: true,
   isTokenRedeemed: true,
   lastQuestCompletedAt: true,
@@ -94,6 +97,8 @@ export const insertRedemptionCodeSchema = createInsertSchema(redemptionCodes).pi
   code: true,
   tokens: true,
   createdBy: true,
+}).extend({
+  createdByRobloxId: createInsertSchema(redemptionCodes).shape.createdByRobloxId.optional(),
 });
 
 export const updateRedemptionCodeSchema = createInsertSchema(redemptionCodes).pick({
