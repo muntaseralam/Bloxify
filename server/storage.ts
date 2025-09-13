@@ -726,12 +726,30 @@ export class MemStorage implements IStorage {
     }
 
     // Find the redeemer to add tokens to their in-game balance
-    const redeemer = await this.getUserByRobloxUserId(robloxUserId);
+    let redeemer = await this.getUserByRobloxUserId(robloxUserId);
+    
+    // If redeemer not found by Roblox ID, they might not have their Roblox ID linked yet
+    // Try to find them by matching the username and then link their Roblox ID
+    if (!redeemer && creator) {
+      // The person redeeming is likely the same person who created the code
+      // Update their Roblox UserId so future redemptions work
+      await this.updateUser(creator.username, {
+        robloxUserId: robloxUserId
+      });
+      redeemer = await this.getUserByUsername(creator.username);
+    }
+    
     if (redeemer) {
       // Add tokens to redeemer's in-game balance
       await this.updateUser(redeemer.username, {
         inGameTokenBalance: (redeemer.inGameTokenBalance || 0) + redemptionCode.tokens
       });
+    } else {
+      // If we still can't find the redeemer, fail the redemption
+      return {
+        success: false,
+        message: "Unable to find user account. Make sure you have an account on the website with this username."
+      };
     }
 
     // Mark the code as redeemed
