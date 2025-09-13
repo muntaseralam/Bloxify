@@ -146,14 +146,6 @@ const TokenSection = ({ token, username, tokenCount = 0, onStartNewQuest, dailyQ
                       {copied ? 'Copied!' : 'Copy Code'}
                     </Button>
                     
-                    <Link href="/docs">
-                      <Button 
-                        className="game-button bg-[#4CAF50] text-white font-bold py-2 px-6 rounded-lg border-b-4 border-[#1A1A1A] hover:bg-green-500 inline-flex items-center justify-center transition-all hover:-translate-y-1"
-                      >
-                        <i className="fas fa-check-circle mr-2"></i> Redeem in Roblox
-                      </Button>
-                    </Link>
-                    
                     {onStartNewQuest && (
                       <Button 
                         onClick={onStartNewQuest}
