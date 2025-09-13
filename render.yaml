@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: bloxify-app
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
+
+databases:
+  - name: bloxify-db
+    databaseName: bloxify
+    user: bloxify_user
+    plan: free
