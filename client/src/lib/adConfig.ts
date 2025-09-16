@@ -23,6 +23,22 @@ const defaultConfig: AdNetworkConfig = {
   enabled: false
 };
 
+// Check if we're in production environment
+function isProductionEnvironment(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check for manual production mode setting
+  const manualMode = localStorage.getItem('blox_production_mode');
+  if (manualMode === 'true') return true;
+  
+  // Auto-detect production based on domain
+  const hostname = window.location.hostname;
+  const isReplit = hostname.includes('replit.app') || hostname.includes('repl.co');
+  const isCustomDomain = !hostname.includes('localhost') && !hostname.includes('127.0.0.1') && !isReplit;
+  
+  return isCustomDomain || (isReplit && localStorage.getItem('blox_ad_config'));
+}
+
 // Function to load config from localStorage
 function loadConfigFromStorage(): AdNetworkConfig {
   // Only access localStorage in browser environment
@@ -30,14 +46,14 @@ function loadConfigFromStorage(): AdNetworkConfig {
   
   try {
     const savedConfig = localStorage.getItem('blox_ad_config');
-    const productionMode = localStorage.getItem('blox_production_mode');
+    const isProduction = isProductionEnvironment();
     
     if (savedConfig) {
       const parsedConfig = JSON.parse(savedConfig);
       // Filter out only the properties we need for our config
       const filteredConfig: AdNetworkConfig = {
         ...defaultConfig,
-        enabled: productionMode === 'true',
+        enabled: isProduction && (!!parsedConfig.adsensePublisherId || !!parsedConfig.ezoicSiteId || !!parsedConfig.adsterraSiteId),
         adsensePublisherId: parsedConfig.adsensePublisherId || undefined,
         ezoicSiteId: parsedConfig.ezoicSiteId || undefined,
         adsterraSiteId: parsedConfig.adsterraSiteId || undefined,
@@ -54,7 +70,7 @@ function loadConfigFromStorage(): AdNetworkConfig {
     console.error('Error loading ad configuration from localStorage:', e);
   }
   
-  return defaultConfig;
+  return { ...defaultConfig, enabled: false };
 }
 
 // Export the configuration

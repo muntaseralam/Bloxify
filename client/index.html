@@ -2,12 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bloxify - The Ultimate Roblox Product</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Google AdSense Script - Replace with your actual publisher ID when you have one -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID_HERE" crossorigin="anonymous"></script>
+    <title>BloxToken - Earn Robux & Rewards</title>
+    <meta name="description" content="Earn free Robux and rewards by completing quests, watching ads, and playing minigames on BloxToken." />
+    <meta name="keywords" content="free robux, earn robux, blox fruits, roblox, rewards, tokens" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bloxtoken.com/" />
+    <meta property="og:title" content="BloxToken - Earn Free Robux & Rewards" />
+    <meta property="og:description" content="Complete quests, watch ads, and play minigames to earn free Robux and rewards!" />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://bloxtoken.com/" />
+    <meta property="twitter:title" content="BloxToken - Earn Free Robux & Rewards" />
+    <meta property="twitter:description" content="Complete quests, watch ads, and play minigames to earn free Robux and rewards!" />
+    <meta property="twitter:image" content="/og-image.png" />
+
+    <!-- Google AdSense - Will be loaded dynamically when configured -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous" data-adtest="on"></script>
+
+    <!-- Ezoic - Will be loaded dynamically when configured -->
+    <!-- Adsterra - Will be loaded dynamically when configured -->
+
+    <!-- Ad blocker detection -->
+    <script>
+      window.addEventListener('load', function() {
+        // Simple ad blocker detection
+        const adBlockTest = document.createElement('div');
+        adBlockTest.innerHTML = '&nbsp;';
+        adBlockTest.className = 'adsbox';
+        adBlockTest.style.position = 'absolute';
+        adBlockTest.style.left = '-10000px';
+        document.body.appendChild(adBlockTest);
+
+        setTimeout(function() {
+          if (adBlockTest.offsetHeight === 0) {
+            console.log('AdBlocker detected');
+            // You can show a message to users about ad blocking
+          }
+          document.body.removeChild(adBlockTest);
+        }, 100);
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

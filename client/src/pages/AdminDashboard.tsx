@@ -6,6 +6,7 @@ import { useRobloxUser } from '@/hooks/useRobloxUser';
 import AdminStatistics from '@/components/AdminStatistics';
 import UserRegistrationStats from '@/components/UserRegistrationStats';
 import UserManagement from '@/components/UserManagement';
+import AdAnalytics from "@/components/AdAnalytics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AdminDashboard() {
@@ -13,7 +14,7 @@ export default function AdminDashboard() {
 
   const { user } = useRobloxUser();
   const { isOwner, currentRole } = useAdmin();
-  
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center mb-8">
@@ -32,35 +33,35 @@ export default function AdminDashboard() {
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="configuration">Configuration</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="statistics" className="space-y-8">
           <section>
             <h2 className="text-2xl font-bold mb-4">Platform Activity</h2>
             <AdminStatistics />
           </section>
-          
+
           <section>
             <h2 className="text-2xl font-bold mb-4">User Registration Analytics</h2>
             <UserRegistrationStats />
           </section>
         </TabsContent>
-        
+
         <TabsContent value="users" className="space-y-6">
           <section>
             <h2 className="text-2xl font-bold mb-4">User Management</h2>
             <UserManagement isOwner={isOwner} />
           </section>
         </TabsContent>
-        
+
         <TabsContent value="configuration" className="space-y-6">
           <h2 className="text-2xl font-bold mb-4">Admin Configuration</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Ad Configuration</CardTitle>
-                <CardDescription>
-                  Manage your ad network settings and integrations
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <i className="fas fa-ad"></i>
+                  Ad Network Configuration
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="mb-4">
@@ -88,6 +89,12 @@ export default function AdminDashboard() {
                 </Link>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Ad Analytics Section */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Ad Performance</h2>
+            <AdAnalytics />
           </div>
         </TabsContent>
       </Tabs>

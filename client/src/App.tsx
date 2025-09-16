@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route, Link, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -25,6 +25,8 @@ import { useRobloxUser } from "./hooks/useRobloxUser";
 import { useGameProgress } from "./hooks/useGameProgress";
 import { AdProviderProvider } from "./context/AdProviderContext";
 import { AdminAuthProvider, useAdmin } from "./hooks/useAdmin";
+import GoogleAdSense from "@/components/ads/GoogleAdSense";
+import InterstitialAd from "@/components/ads/InterstitialAd";
 
 function BloxifyApp() {
   const { user, login, logout, checkVIPStatus } = useRobloxUser();
@@ -54,10 +56,10 @@ function BloxifyApp() {
       setLocation("/login");
       return;
     }
-    
+
     // Reset ads watched and set current step to 1 (minigame)
     updateGameStatus(1, false, 0);
-    
+
     toast({
       title: "Quest Started!",
       description: "Your quest has begun! Complete the minigame to continue.",
@@ -68,7 +70,7 @@ function BloxifyApp() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Header />
-      
+
       <div className="game-container bg-white rounded-xl p-4 md:p-8 max-w-5xl mx-auto mb-12 border-8 border-[#1A1A1A] shadow-[0_0_0_4px_#FF4500,0_10px_20px_rgba(0,0,0,0.2)]">
         <AuthSection 
           isLoggedIn={!!user} 
@@ -76,7 +78,7 @@ function BloxifyApp() {
           onLogin={login} 
           onLogout={logout} 
         />
-        
+
         {user && (
           <>
             {currentStep >= 1 && (
@@ -91,7 +93,7 @@ function BloxifyApp() {
                 dailyQuestCount={dailyQuestCount}
               />
             )}
-            
+
             {currentStep === 1 && (
               <MinigameSection 
                 onGameComplete={() => {
@@ -99,7 +101,7 @@ function BloxifyApp() {
                 }} 
               />
             )}
-            
+
             {currentStep === 2 && (
               <AdViewingSection 
                 adsWatched={adsWatched} 
@@ -114,7 +116,7 @@ function BloxifyApp() {
                 }} 
               />
             )}
-            
+
             {currentStep === 3 && (
               <TokenSection 
                 token={token} 
@@ -128,13 +130,13 @@ function BloxifyApp() {
                 onCheckVIPStatus={checkVIPStatus}
               />
             )}
-            
+
             {currentStep === 0 && (
               <WaitlistSection onStartQuest={startQuest} />
             )}
           </>
         )}
-        
+
         {!user && (
           <WaitlistSection onStartQuest={() => {
             // Redirect to login page - the toast will be handled in WaitlistSection component
@@ -142,7 +144,7 @@ function BloxifyApp() {
           }} />
         )}
       </div>
-      
+
       <Footer />
       <Toaster />
     </div>
@@ -150,13 +152,34 @@ function BloxifyApp() {
 }
 
 function App() {
+  const [showInterstitial, setShowInterstitial] = useState(false);
+
+  // Show interstitial ad occasionally for engagement
+  useEffect(() => {
+    const showInterstitialChance = Math.random() < 0.15; // 15% chance
+    const hasShownToday = localStorage.getItem('interstitial_shown_today');
+    const today = new Date().toDateString();
+
+    if (showInterstitialChance && hasShownToday !== today) {
+      setTimeout(() => {
+        setShowInterstitial(true);
+        localStorage.setItem('interstitial_shown_today', today);
+      }, 5000); // Show after 5 seconds
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AdminAuthProvider>
         <AdProviderProvider initialConfig={{ provider: 'simulated', isProduction: false }}>
           <div className="min-h-screen bg-[#F2F2F2] font-['Nunito',sans-serif] bg-gradient-to-br from-[#F2F2F2] to-[#E0E0E0]">
             <MainNavigation />
-            
+
+            {/* Top banner ad */}
+            <div className="container mx-auto px-4 pt-4">
+              <GoogleAdSense position="top" format="horizontal" />
+            </div>
+
             <Switch>
               <Route path="/" component={BloxifyApp} />
               <Route path="/login" component={Login} />
@@ -167,6 +190,22 @@ function App() {
               <AdminProtectedRoute path="/ad-config" component={AdConfig} />
               <Route component={NotFound} />
             </Switch>
+
+            {/* Bottom banner ad */}
+            <div className="container mx-auto px-4 pb-4">
+              <GoogleAdSense position="bottom" format="horizontal" />
+            </div>
+
+            <Footer />
+            <Toaster />
+
+            {/* Interstitial ad overlay */}
+            {showInterstitial && (
+              <InterstitialAd 
+                onClose={() => setShowInterstitial(false)}
+                autoCloseDelay={8000}
+              />
+            )}
           </div>
         </AdProviderProvider>
       </AdminAuthProvider>
@@ -177,11 +216,11 @@ function App() {
 function MainNavigation() {
   const { isAdmin, isOwner } = useAdmin();
   const { user } = useRobloxUser();
-  
+
   // Define if the user should see admin content
   // Only admins and the owner (minecraftgamer523653) can see admin content
   const showAdminContent = isAdmin || isOwner || (user?.username === "minecraftgamer523653");
-  
+
   return (
     <nav className="bg-[#1A1A1A] text-white p-4">
       <div className="container mx-auto flex justify-between items-center">
@@ -205,7 +244,7 @@ function MainNavigation() {
               </Link>
             </>
           )}
-          
+
           {showAdminContent && (
             <>
               <Link href="/admin">

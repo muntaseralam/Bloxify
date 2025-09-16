@@ -44,9 +44,29 @@ export const AdProviderProvider: React.FC<AdProviderProviderProps> = ({
   children,
   initialConfig = {}
 }) => {
-  const [config, setConfig] = useState<AdConfigType>({
-    ...defaultConfig,
-    ...initialConfig
+  // Detect production environment automatically
+  const isProduction = typeof window !== 'undefined' && (
+    window.location.hostname.includes('replit.app') ||
+    window.location.hostname.includes('repl.co') ||
+    (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1'))
+  );
+
+  const [config, setConfig] = useState<AdConfigType>(() => {
+    // Determine provider based on available configuration
+    let provider: AdProvider = 'simulated';
+    if (AD_CONFIG.adsensePublisherId) provider = 'adsense';
+    else if (AD_CONFIG.ezoicSiteId) provider = 'ezoic';
+    else if (AD_CONFIG.adsterraSiteId) provider = 'adsterra';
+
+    return {
+      ...defaultConfig,
+      provider,
+      isProduction: isProduction && AD_CONFIG.enabled,
+      adsenseClientId: AD_CONFIG.adsensePublisherId,
+      ezoicSiteId: AD_CONFIG.ezoicSiteId,
+      adsterraAccountId: AD_CONFIG.adsterraSiteId,
+      ...initialConfig
+    };
   });
   
   const [isAdblockDetected, setIsAdblockDetected] = useState(false);
