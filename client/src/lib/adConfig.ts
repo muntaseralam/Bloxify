@@ -23,7 +23,8 @@ const defaultConfig: AdNetworkConfig = {
   enabled: false,
   // Real AdSense configuration
   adsensePublisherId: 'ca-pub-6381797008244610',
-  adsenseBannerTopId: '8073659347'
+  adsenseBannerTopId: '8073659347',
+  adsenseBannerBottomId: '5489564891'
 };
 
 // Check if we're in production environment
