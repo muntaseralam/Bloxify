@@ -18,9 +18,12 @@ interface AdNetworkConfig {
   adsterraRewardedVideoZoneId?: string;
 }
 
-// Default configuration to start with
+// Default configuration to start with  
 const defaultConfig: AdNetworkConfig = {
-  enabled: false
+  enabled: false,
+  // Real AdSense configuration
+  adsensePublisherId: 'ca-pub-6381797008244610',
+  adsenseBannerTopId: '8073659347'
 };
 
 // Check if we're in production environment
