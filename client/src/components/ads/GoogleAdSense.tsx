@@ -33,12 +33,15 @@ export const GoogleAdSense = ({
 
       adRef.current.appendChild(adElement);
 
-      // Initialize the ad
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (error) {
-        console.error('AdSense error:', error);
-      }
+      // Wait a bit for DOM to settle, then initialize the ad
+      setTimeout(() => {
+        try {
+          console.log('Initializing AdSense ad:', getSlotId());
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (error) {
+          console.error('AdSense error:', error);
+        }
+      }, 100);
     }
   }, [position]);
 
