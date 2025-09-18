@@ -1,145 +1,33 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AD_CONFIG, loadAdSenseScript, loadEzoicScript, loadAdsterraScript } from '@/lib/adConfig';
-
-// Types of ad providers supported
-type AdProvider = 'adsense' | 'ezoic' | 'adsterra' | 'simulated';
+import { createContext, useContext, ReactNode } from 'react';
 
 interface AdConfigType {
-  provider: AdProvider;
-  adsenseClientId?: string;
-  ezoicSiteId?: string;
-  adsterraAccountId?: string;
   isProduction: boolean;
 }
 
 interface AdContextType {
   config: AdConfigType;
-  isAdblockDetected: boolean;
-  updateConfig: (newConfig: Partial<AdConfigType>) => void;
 }
 
-// Default configuration - simulated ads for development
-const defaultConfig: AdConfigType = {
-  provider: 'simulated',
-  isProduction: false
-};
-
-// Create context with default values
 const AdProviderContext = createContext<AdContextType>({
-  config: defaultConfig,
-  isAdblockDetected: false,
-  updateConfig: () => {}
+  config: { isProduction: true }
 });
 
-// Custom hook to use the ad provider context
 export const useAdProvider = () => useContext(AdProviderContext);
 
-// Provider component
 interface AdProviderProviderProps {
-  children: React.ReactNode;
-  initialConfig?: Partial<AdConfigType>;
+  children: ReactNode;
 }
 
-export const AdProviderProvider: React.FC<AdProviderProviderProps> = ({ 
-  children,
-  initialConfig = {}
-}) => {
-  // Detect production environment automatically
-  const isProduction = typeof window !== 'undefined' && (
-    window.location.hostname.includes('replit.app') ||
-    window.location.hostname.includes('repl.co') ||
-    (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1'))
-  );
+export const AdProviderProvider: React.FC<AdProviderProviderProps> = ({ children }) => {
+  const config = { isProduction: true };
 
-  const [config, setConfig] = useState<AdConfigType>(() => {
-    // Determine provider based on available configuration
-    let provider: AdProvider = 'simulated';
-    if (AD_CONFIG.adsensePublisherId) provider = 'adsense';
-    else if (AD_CONFIG.ezoicSiteId) provider = 'ezoic';
-    else if (AD_CONFIG.adsterraSiteId) provider = 'adsterra';
-
-    return {
-      ...defaultConfig,
-      provider,
-      isProduction: isProduction && AD_CONFIG.enabled,
-      adsenseClientId: AD_CONFIG.adsensePublisherId,
-      ezoicSiteId: AD_CONFIG.ezoicSiteId,
-      adsterraAccountId: AD_CONFIG.adsterraSiteId,
-      ...initialConfig
-    };
-  });
-  
-  const [isAdblockDetected, setIsAdblockDetected] = useState(false);
-  
-  // Function to update config
-  const updateConfig = (newConfig: Partial<AdConfigType>) => {
-    setConfig(prevConfig => ({
-      ...prevConfig,
-      ...newConfig
-    }));
-  };
-  
-  // Load ad scripts when in production mode
-  useEffect(() => {
-    if (config.isProduction) {
-      // Load appropriate ad scripts based on provider
-      if (config.provider === 'adsense' || AD_CONFIG.adsensePublisherId) {
-        loadAdSenseScript();
-      }
-      
-      if (config.provider === 'ezoic' || AD_CONFIG.ezoicSiteId) {
-        loadEzoicScript();
-      }
-      
-      if (config.provider === 'adsterra' || AD_CONFIG.adsterraSiteId) {
-        loadAdsterraScript();
-      }
-      
-      // Simple adblock detection
-      setTimeout(() => {
-        const adBlockDetected = document.getElementById('ad-block-test');
-        if (!adBlockDetected) {
-          setIsAdblockDetected(true);
-        }
-      }, 1000);
-      
-      // Create a hidden dummy ad element to test for ad blockers
-      const testAd = document.createElement('div');
-      testAd.id = 'ad-block-test';
-      testAd.className = 'ad-unit';
-      testAd.style.display = 'none';
-      document.body.appendChild(testAd);
-      
-      return () => {
-        if (testAd && testAd.parentNode) {
-          testAd.parentNode.removeChild(testAd);
-        }
-      };
-    }
-  }, [config.isProduction, config.provider]);
-  
   return (
-    <AdProviderContext.Provider value={{ config, isAdblockDetected, updateConfig }}>
+    <AdProviderContext.Provider value={{ config }}>
       {children}
     </AdProviderContext.Provider>
   );
 };
 
-// Component to display a notice about simulated ads in development mode
-interface SimulatedAdNoticeProps {
-  children?: React.ReactNode;
-}
-
-export const SimulatedAdNotice: React.FC<SimulatedAdNoticeProps> = ({ children }) => {
-  const { config } = useAdProvider();
-  
-  if (config.isProduction) return <>{children}</>;
-  
-  return (
-    <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-2 mb-2 text-xs">
-      <p className="font-bold">Simulated Ad</p>
-      <p>Real ads will appear here when published.</p>
-      {children}
-    </div>
-  );
+export const SimulatedAdNotice: React.FC<{ children?: ReactNode }> = ({ children }) => {
+  return <>{children}</>;
 };
