@@ -37,9 +37,19 @@ export const GoogleAdSense = ({
   
   // Initialize and display the ad when in production mode
   useEffect(() => {
+    console.log('GoogleAdSense useEffect - config:', config);
+    console.log('GoogleAdSense useEffect - AD_CONFIG:', AD_CONFIG);
+    console.log('GoogleAdSense useEffect - position:', position);
+    console.log('GoogleAdSense useEffect - getSlotId():', getSlotId());
+    
     // Only attempt to load real ads in production with valid config
     if (config.isProduction && AD_CONFIG.enabled && AD_CONFIG.adsensePublisherId && adRef.current) {
+      console.log('Loading real AdSense ad...');
+      
       try {
+        // Clear the ad container first
+        adRef.current.innerHTML = '';
+        
         // Create an ins element for the ad
         const adElement = document.createElement('ins');
         adElement.className = 'adsbygoogle';
@@ -49,22 +59,29 @@ export const GoogleAdSense = ({
         adElement.setAttribute('data-ad-slot', getSlotId());
         adElement.setAttribute('data-ad-format', format);
         
-        // Clear the ad container and append the new ad
-        if (adRef.current) {
-          adRef.current.innerHTML = '';
-          adRef.current.appendChild(adElement);
-          
-          // Initialize the ad
+        // Append the new ad
+        adRef.current.appendChild(adElement);
+        
+        // Initialize the ad with delay to ensure DOM is ready
+        setTimeout(() => {
           try {
-            // This works if the AdSense script is already loaded
+            console.log('Pushing ad to AdSense queue...');
             (window.adsbygoogle = window.adsbygoogle || []).push({});
           } catch (error) {
             console.error('Error initializing AdSense ad:', error);
           }
-        }
+        }, 100);
+        
       } catch (error) {
         console.error('Error creating AdSense ad:', error);
       }
+    } else {
+      console.log('Not loading real ad - conditions not met:', {
+        isProduction: config.isProduction,
+        enabled: AD_CONFIG.enabled,
+        hasPublisherId: !!AD_CONFIG.adsensePublisherId,
+        hasRef: !!adRef.current
+      });
     }
   }, [config.isProduction, format, position]);
   
