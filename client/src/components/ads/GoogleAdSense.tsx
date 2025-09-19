@@ -89,16 +89,26 @@ export const GoogleAdSense = ({
         minHeight: '90px',
         width: '100%',
         textAlign: 'center',
-        backgroundColor: scriptLoaded ? 'transparent' : '#f0f0f0',
-        border: scriptLoaded ? 'none' : '1px dashed #ccc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: '#ffeb3b', // Bright yellow to make it visible
+        border: '3px solid #ff4444', // Bright red border
+        display: 'block',
+        margin: '10px 0',
+        padding: '10px',
+        position: 'relative',
+        zIndex: 1000,
         ...style
       }}
     >
+      <div style={{ 
+        color: '#000', 
+        fontSize: '14px', 
+        fontWeight: 'bold',
+        padding: '5px'
+      }}>
+        DEBUG: AdSense Component ({position}) - Script Loaded: {scriptLoaded ? 'YES' : 'NO'}
+      </div>
       {!scriptLoaded && (
-        <span style={{ color: '#666', fontSize: '12px' }}>Loading AdSense...</span>
+        <div style={{ color: '#666', fontSize: '12px' }}>Loading AdSense script...</div>
       )}
     </div>
   );
