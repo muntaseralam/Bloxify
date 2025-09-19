@@ -55,8 +55,11 @@ export const GoogleAdSense = ({
   // Initialize ads once script is loaded
   useEffect(() => {
     if (scriptLoaded && adRef.current) {
-      // Clear any existing content
-      adRef.current.innerHTML = '';
+      // Only initialize if container is empty
+      if (adRef.current.children.length > 0) {
+        console.log('Ad already exists for slot:', getSlotId());
+        return;
+      }
 
       // Create the ad element
       const adElement = document.createElement('ins');
@@ -76,9 +79,30 @@ export const GoogleAdSense = ({
           (window.adsbygoogle = window.adsbygoogle || []).push({});
         } catch (error) {
           console.error('AdSense error:', error);
+          // If error, clear the element and try again once
+          if (adRef.current) {
+            adRef.current.innerHTML = '';
+          }
         }
       }, 100);
     }
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      if (adRef.current) {
+        // Remove ads when component unmounts
+        const adsElements = adRef.current.querySelectorAll('.adsbygoogle');
+        adsElements.forEach(ad => {
+          try {
+            if (ad.parentNode === adRef.current) {
+              adRef.current.removeChild(ad);
+            }
+          } catch (e) {
+            // Ignore removal errors
+          }
+        });
+      }
+    };
   }, [position, scriptLoaded]);
 
   return (
@@ -89,9 +113,22 @@ export const GoogleAdSense = ({
         minHeight: '90px',
         width: '100%',
         textAlign: 'center',
+        backgroundColor: scriptLoaded ? 'transparent' : '#f8f9fa',
+        border: '1px solid #e0e0e0',
+        position: 'relative',
         ...style
       }}
-    />
+    >
+      {!scriptLoaded && (
+        <div style={{ 
+          padding: '20px',
+          color: '#666',
+          fontSize: '14px'
+        }}>
+          AdSense Loading... ({position})
+        </div>
+      )}
+    </div>
   );
 };
 
