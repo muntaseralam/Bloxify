@@ -67,7 +67,7 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
         {/* Banner ad at the top */}
         <div className="mb-4">
           {config.provider === 'adsense' ? (
-            <GoogleAdSense position="top" format="horizontal" />
+            <GoogleAdSense position="top" />
           ) : config.provider === 'ezoic' ? (
             <EzoicAd id={101} /> // Unique ID for this ad position
           ) : (
@@ -149,8 +149,7 @@ const AdViewingSection = ({ adsWatched, totalAds, onAdWatched }: AdViewingSectio
       {isWatching && (
         <RewardedVideoAd 
           onComplete={handleAdComplete}
-          onCancel={handleAdCancel}
-          duration={3000} // 3 seconds for testing, would be longer in production
+          onClose={handleAdCancel}
         />
       )}
     </div>

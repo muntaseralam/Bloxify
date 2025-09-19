@@ -171,13 +171,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AdminAuthProvider>
-        <AdProviderProvider initialConfig={{ provider: 'simulated', isProduction: false }}>
+        <AdProviderProvider initialConfig={{ provider: 'adsense', isProduction: true }}>
           <div className="min-h-screen bg-[#F2F2F2] font-['Nunito',sans-serif] bg-gradient-to-br from-[#F2F2F2] to-[#E0E0E0]">
             <MainNavigation />
 
             {/* Top banner ad */}
             <div className="container mx-auto px-4 pt-4">
-              <GoogleAdSense position="top" format="horizontal" />
+              <GoogleAdSense position="top" />
             </div>
 
             <Switch>
@@ -193,7 +193,7 @@ function App() {
 
             {/* Bottom banner ad */}
             <div className="container mx-auto px-4 pb-4">
-              <GoogleAdSense position="bottom" format="horizontal" />
+              <GoogleAdSense position="bottom" />
             </div>
 
             <Footer />
