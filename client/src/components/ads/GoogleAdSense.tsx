@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { loadAdSenseScript } from '@/lib/adConfig';
 
 interface GoogleAdSenseProps {
   position: 'top' | 'bottom';
@@ -12,13 +13,48 @@ export const GoogleAdSense = ({
   style = {}
 }: GoogleAdSenseProps) => {
   const adRef = useRef<HTMLDivElement>(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
 
   const getSlotId = () => {
     return position === 'top' ? '8073659347' : '5489564891';
   };
 
+  // Load AdSense script on component mount
   useEffect(() => {
-    if (adRef.current) {
+    // Check if script is already loaded
+    const existingScript = document.querySelector('script[src*="adsbygoogle.js"]');
+    if (existingScript) {
+      console.log('AdSense script already loaded');
+      setScriptLoaded(true);
+      return;
+    }
+
+    console.log('Loading AdSense script...');
+    loadAdSenseScript();
+    
+    // Wait for script to load
+    const checkScript = setInterval(() => {
+      if (window.adsbygoogle) {
+        console.log('AdSense script loaded successfully');
+        setScriptLoaded(true);
+        clearInterval(checkScript);
+      }
+    }, 100);
+
+    // Clear interval after 10 seconds if script doesn't load
+    setTimeout(() => {
+      clearInterval(checkScript);
+      if (!window.adsbygoogle) {
+        console.error('AdSense script failed to load');
+      }
+    }, 10000);
+
+    return () => clearInterval(checkScript);
+  }, []);
+
+  // Initialize ads once script is loaded
+  useEffect(() => {
+    if (scriptLoaded && adRef.current) {
       // Clear any existing content
       adRef.current.innerHTML = '';
 
@@ -43,7 +79,7 @@ export const GoogleAdSense = ({
         }
       }, 100);
     }
-  }, [position]);
+  }, [position, scriptLoaded]);
 
   return (
     <div 
@@ -53,9 +89,18 @@ export const GoogleAdSense = ({
         minHeight: '90px',
         width: '100%',
         textAlign: 'center',
+        backgroundColor: scriptLoaded ? 'transparent' : '#f0f0f0',
+        border: scriptLoaded ? 'none' : '1px dashed #ccc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         ...style
       }}
-    />
+    >
+      {!scriptLoaded && (
+        <span style={{ color: '#666', fontSize: '12px' }}>Loading AdSense...</span>
+      )}
+    </div>
   );
 };
 
