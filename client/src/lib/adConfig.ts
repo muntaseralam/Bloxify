@@ -22,8 +22,8 @@ interface AdNetworkConfig {
 export const AD_CONFIG = {
   enabled: true,
   adsensePublisherId: 'ca-pub-6381797008244610',
-  adsenseBannerTopId: '8073659347',
-  adsenseBannerBottomId: '5489564891'
+  adsenseBannerTopId: '5489564891',
+  adsenseBannerBottomId: '8073659347'
 };
 
 // Always production mode
